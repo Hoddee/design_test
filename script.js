@@ -5,20 +5,25 @@ const SUPABASE_URL = "https://kzrnclebljkvsndsfryg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_-JhlGFRGR3RKRD-BMjIWiQ_FsSZOTWV";
 const BUCKET = "grafiken";
 
+/* Der Verein, für den diese Installation läuft.
+   Spielerbilder und Sponsoren liegen in seinem eigenen Ordner; die Wappen
+   teilt er sich mit allen anderen Vereinen derselben Liga. */
+const CLUB = {
+  ordner:      "SC_Fornsbach",                          /* eigener Ordner */
+  ligaOrdner:  "Wappen_KreisligaB2_Rems__Murr__Hall",   /* gemeinsamer Wappen-Pool */
+  file:        "SC_Fornsbach.png",                      /* eigenes Wappen darin */
+  name:        "SC Fornsbach",
+  venue:       "Sportplatz Fornsbach",
+  competition: "Kreisliga B2 Rems/Murr/Hall"
+};
+
 /* Unterordner der Bibliothek */
 const DIRS = {
   vorlagen:      "vorlagen",
-  wappen:        "wappen",
-  spielerbilder: "spielerbilder",
-  sponsoren:     "sponsoren",
+  wappen:        CLUB.ligaOrdner,
+  spielerbilder: CLUB.ordner + "/Spielerbilder",
+  sponsoren:     CLUB.ordner + "/Sponsoren",
   fonts:         "fonts/zing"
-};
-
-const CLUB = {
-  file:"SC_Fornsbach.png",
-  name:"SC Fornsbach",
-  venue:"Sportplatz Fornsbach",
-  competition:"Kreisliga B2 Rems/Murr/Hall"
 };
 
 const MAX_SPONSORS = 5;
@@ -86,13 +91,13 @@ function prettyName(file, opts){
   if(opts && opts.stripPrefix){
     n = n.replace(new RegExp("^"+opts.stripPrefix+"[_ -]*","i"), "");
   }
-  n = n.replace(/_/g," ");                        /* Unterstrich -> Leerzeichen */
   if(opts && opts.slash){
-    /* Bindestrich steht für den Schrägstrich der Spielgemeinschaft */
-    n = n.replace(/\s*-\s*/g," / ");
-  } else {
-    n = n.replace(/\s*-\s*/g," ");
+    /* Doppelter Unterstrich steht für den Schrägstrich der Spielgemeinschaft.
+       Ein einzelner Bindestrich bleibt ein echter Bindestrich (z. B.
+       "Murrhardt-Kirchenkirnberg") und wird nicht mehr angefasst. */
+    n = n.replace(/\s*__\s*/g," / ");
   }
+  n = n.replace(/_/g," ");                        /* einzelner Unterstrich -> Leerzeichen */
   if(opts && opts.und){
     n = n.replace(/\bund\b/g,"und");
   }
