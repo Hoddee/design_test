@@ -110,11 +110,13 @@ function contentBox(img){
 
     let minX = cw, minY = ch, maxX = -1, maxY = -1, opak = 0;
     const rowLeft = new Array(ch).fill(-1);
+    const rowRight = new Array(ch).fill(-1);
     for(let y = 0; y < ch; y++){
       for(let x = 0; x < cw; x++){
         if(px[(y*cw + x)*4 + 3] > 12){
           opak++;
           if(rowLeft[y] < 0) rowLeft[y] = x;
+          rowRight[y] = x;
           if(x < minX) minX = x;
           if(x > maxX) maxX = x;
           if(y < minY) minY = y;
@@ -130,15 +132,17 @@ function contentBox(img){
        Originalpixeln. Damit lässt sich prüfen, wie weit ein Spielerbild
        auf einer bestimmten Höhe nach links reicht. */
     const BANDS = 48;
-    const leftProfile = [];
+    const leftProfile = [], rightProfile = [];
     for(let k = 0; k < BANDS; k++){
       const y0 = minY + Math.floor(bh * k / BANDS);
       const y1 = minY + Math.floor(bh * (k+1) / BANDS);
-      let m = Infinity;
+      let m = Infinity, r = -Infinity;
       for(let y = y0; y < Math.max(y0+1, y1); y++){
-        if(rowLeft[y] >= 0 && rowLeft[y] < m) m = rowLeft[y];
+        if(rowLeft[y]  >= 0 && rowLeft[y]  < m) m = rowLeft[y];
+        if(rowRight[y] >= 0 && rowRight[y] > r) r = rowRight[y];
       }
       leftProfile.push(m === Infinity ? bw/s : (m - minX)/s);
+      rightProfile.push(r === -Infinity ? 0 : (r - minX)/s);
     }
     const box = {
       x: minX/s,
@@ -149,7 +153,8 @@ function contentBox(img){
          ein runder oder spitzer Umriss füllt seinen Rahmen weniger
          als ein Schild und würde bei gleicher Rahmengröße kleiner wirken */
       fill: opak / (bw*bh),
-      leftProfile: leftProfile
+      leftProfile: leftProfile,
+      rightProfile: rightProfile
     };
     boxCache[key] = box;
     return box;
@@ -288,6 +293,19 @@ function drawTemplateFrom(yStart){
   }
 }
 
+/* Wie drawTemplateFrom, aber nur ein horizontaler Streifen — für Vorlagen,
+   bei denen ein Bildelement (z. B. ein Farbband) über dem Spielerbild
+   liegen soll, ohne den Bereich darunter zu verdecken. */
+function drawTemplateStrip(y0, y1){
+  if(!render.template) return;
+  const t = render.template;
+  const ts = Math.max(W/t.width, H/t.height);
+  const tw = t.width*ts, th = t.height*ts;
+  const tx = (W-tw)/2, ty = (H-th)/2;
+  const sy0 = (y0 - ty) / ts, sy1 = (y1 - ty) / ts;
+  ctx.drawImage(t, 0, sy0, t.width, sy1 - sy0, tx, y0, tw, y1 - y0);
+}
+
 /* ========== Gemeinsame Layout-Bausteine ==========
    Beide Grafiktypen teilen Kopfzeile, Wappenreihe, Spielerbild und
    Sponsorenleiste. Die typspezifischen Teile (Ort/Zeit bzw. Ergebnis)
@@ -295,7 +313,7 @@ function drawTemplateFrom(yStart){
 
 /* Heim/Gast-Zuordnung, Wappenmaße und Kopfzeilentexte */
 function layoutCommon(L){
-  const K = LAYOUT;
+  const K = layoutFor();
   L.heim = draft.homeAway !== "auswaerts";
   const oppName = draft.opponent ? draft.opponent.name : "Gegner";
 
@@ -316,8 +334,11 @@ function layoutCommon(L){
   L.ligaText = (draft.competition||"").toUpperCase();
 
   L.hasPlayer = !!render.player;
-  L.colW = L.hasPlayer ? 545 : 860;
-  L.ligaKante = K.PAD + fittedWidth(L.ligaText, L.colW, 36, 22);
+  L.colW = L.hasPlayer ? K.COL_W : K.COL_W_FREE;
+  /* Bei rechtsbündigem Satz ist die linke Kante der Liga-Zeile das
+     Hindernis für ein Spielerbild, das links steht. */
+  const ligaW = fittedWidth(L.ligaText, L.colW, K.LIGA_CAP, 22);
+  L.ligaKante = K.ALIGN === "right" ? K.TEXT_X - ligaW : K.PAD + ligaW;
 }
 
 /* Spielerbild platzieren.
@@ -326,26 +347,39 @@ function layoutCommon(L){
    platzSchaffen(): optional; darf das Layout verändern (z. B. einen Namen
    umbrechen) und gibt true zurück, wenn es das getan hat. */
 function placePlayer(L, hindernisse, platzSchaffen){
-  const K = LAYOUT;
+  const K = layoutFor();
   if(!L.hasPlayer){ L.player = null; return; }
 
-  function minXFuer(b, s, y, h){
-    const prof = b.leftProfile;
-    let need = -Infinity;
+  /* Steht der Spieler links, ist seine rechte Kontur maßgeblich und die
+     Hindernisse liegen rechts von ihm — die Rechnung wird gespiegelt. */
+  const linksSeite = K.PLAYER_SIDE === "left";
+
+  function grenzeFuer(b, s, y, h){
+    const prof = linksSeite ? b.rightProfile : b.leftProfile;
+    let need = linksSeite ? Infinity : -Infinity;
     hindernisse().forEach(function(hd){
       const f0 = (hd.y0 - y) / h, f1 = (hd.y1 - y) / h;
       if(f1 <= 0 || f0 >= 1) return;
       const k0 = Math.max(0, Math.floor(f0 * prof.length));
       const k1 = Math.min(prof.length - 1, Math.ceil(f1 * prof.length));
-      let links = Infinity;
-      for(let k = k0; k <= k1; k++) if(prof[k] < links) links = prof[k];
-      if(links === Infinity) return;
-      const x = hd.x + K.PLAYER_GAP - links * s;
-      if(x > need) need = x;
+      if(linksSeite){
+        let rechts = -Infinity;
+        for(let k = k0; k <= k1; k++) if(prof[k] > rechts) rechts = prof[k];
+        if(rechts === -Infinity) return;
+        const x = hd.x - K.PLAYER_GAP - rechts * s;   /* hd.x = linke Kante des Inhalts */
+        if(x < need) need = x;
+      } else {
+        let links = Infinity;
+        for(let k = k0; k <= k1; k++) if(prof[k] < links) links = prof[k];
+        if(links === Infinity) return;
+        const x = hd.x + K.PLAYER_GAP - links * s;
+        if(x > need) need = x;
+      }
     });
     return need;
   }
 
+  const R = K.RIGHT_EDGE;
   const b = contentBox(render.player);
   const pname = (draft.player && draft.player.name) || "";
   const zwei = /\bund\b/i.test(pname) || (b.w / b.h) > 0.72;
@@ -355,27 +389,46 @@ function placePlayer(L, hindernisse, platzSchaffen){
   if(b.w * s > K.PLAYER_MAX_W) s = K.PLAYER_MAX_W / b.w;
   let w = b.w*s, h = b.h*s, y = K.BAR_BOTTOM - h;
 
-  let minX = minXFuer(b, s, y, h);
+  let grenze = grenzeFuer(b, s, y, h);
   let x;
-  if(zwei){
-    x = Math.max(W - w, minX);
-    if(x - (W - w) > K.PAIR_WRAP_TRIGGER && platzSchaffen && platzSchaffen()){
-      minX = minXFuer(b, s, y, h);
-      x = Math.max(W - w, minX);
+
+  if(linksSeite){
+    /* Gespiegelt: der Spieler sitzt am linken Rand, grenze ist die
+       weiteste erlaubte Position nach rechts. */
+    const L0 = K.PLAYER_LEFT_EDGE;
+    x = Math.min(L0, grenze);
+    if(L0 - x > K.PAIR_WRAP_TRIGGER && platzSchaffen && platzSchaffen()){
+      grenze = grenzeFuer(b, s, y, h);
+      x = Math.min(L0, grenze);
     }
-    if(x - (W - w) > K.PLAYER_OVERHANG_MAX){
-      s *= (W + K.PLAYER_OVERHANG_MAX - minX) / w;
+    if(L0 - x > K.PLAYER_OVERHANG_MAX){
+      /* zu viel Anschnitt nötig → verkleinern statt wegschieben */
+      const ziel = L0 - K.PLAYER_OVERHANG_MAX;
+      const alteBreite = w;
+      s *= (grenze + w - ziel) / alteBreite;
       w = b.w*s; h = b.h*s; y = K.BAR_BOTTOM - h;
-      minX = minXFuer(b, s, y, h);
-      x = Math.min(Math.max(W - w + K.PLAYER_OVERHANG_MAX, minX), W - w + K.PLAYER_OVERHANG_MAX);
+      grenze = grenzeFuer(b, s, y, h);
+      x = Math.min(ziel, grenze);
+    }
+  } else if(zwei){
+    x = Math.max(R - w, grenze);
+    if(x - (R - w) > K.PAIR_WRAP_TRIGGER && platzSchaffen && platzSchaffen()){
+      grenze = grenzeFuer(b, s, y, h);
+      x = Math.max(R - w, grenze);
+    }
+    if(x - (R - w) > K.PLAYER_OVERHANG_MAX){
+      s *= (R + K.PLAYER_OVERHANG_MAX - grenze) / w;
+      w = b.w*s; h = b.h*s; y = K.BAR_BOTTOM - h;
+      grenze = grenzeFuer(b, s, y, h);
+      x = Math.min(Math.max(R - w + K.PLAYER_OVERHANG_MAX, grenze), R - w + K.PLAYER_OVERHANG_MAX);
     }
   } else {
-    x = W - w - K.PLAYER_INSET;
-    if(x < minX){
-      s *= (W - K.PLAYER_INSET - minX) / w;
+    x = R - w - K.PLAYER_INSET;
+    if(x < grenze){
+      s *= (R - K.PLAYER_INSET - grenze) / w;
       w = b.w*s; h = b.h*s; y = K.BAR_BOTTOM - h;
-      minX = minXFuer(b, s, y, h);
-      x = Math.max(W - w - K.PLAYER_INSET, minX);
+      grenze = grenzeFuer(b, s, y, h);
+      x = Math.max(R - w - K.PLAYER_INSET, grenze);
     }
   }
   L.player = { b:b, x:x, y:y, w:w, h:h };
@@ -400,29 +453,45 @@ function drawPlayer(L){
   ctx.shadowOffsetX = -8;
   ctx.drawImage(render.player, p.b.x, p.b.y, p.b.w, p.b.h, p.x, p.y, p.w, p.h);
   ctx.restore();
-  drawTemplateFrom(LAYOUT.BAR_TOP);
+  const K = layoutFor();
+  if(K.RESTORE_STRIP) drawTemplateStrip(K.RESTORE_STRIP.y0, K.RESTORE_STRIP.y1);
+  else drawTemplateFrom(K.BAR_TOP);
+}
+
+/* Manche Vorlagen haben keinen Balken — dann zeichnen wir selbst einen
+   dezent dunkleren Streifen als Sponsorenzone. Er liegt über dem
+   Spielerbild und kaschiert dessen Unterkante. */
+function drawStrip(){
+  const K = layoutFor();
+  if(!K.STRIP) return;
+  const S = K.STRIP;
+  ctx.fillStyle = S.color;
+  ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
 }
 
 function drawTopLogo(){
-  const K = LAYOUT;
-  if(render.own) fitContain(render.own, W - K.PAD - 32, K.PAD + 30, 64, 64);
+  const K = layoutFor();
+  if(render.own) fitContain(render.own, K.LOGO_X, K.LOGO_Y, K.LOGO_SIZE, K.LOGO_SIZE);
 }
 
 /* Kopfzeile — Grundlinien 178 / 251 / 296 wie in der Vorlage */
 function drawHeader(L, titel){
-  const K = LAYOUT;
+  const K = layoutFor();
+  const ax = K.ALIGN === "right" ? K.TEXT_X : K.PAD;
+  const al = K.ALIGN || "left";
+  const minT = K.TITLE_MIN_CAP || 90, minM = K.MD_MIN_CAP || 36, minL = K.LIGA_MIN_CAP || 22;
   shadowOn(20,.45);
   ctx.fillStyle = "#FFFFFF";
-  skewFit(titel, K.PAD, 178, 1055, 148, 90);
+  skewFit(titel, ax, K.TITLE_BASE, K.TITLE_MAX_W, K.TITLE_CAP, minT, al);
   ctx.fillStyle = "#AFC3D8";
-  skewFit(L.mdText, K.PAD, 251, L.colW, 64, 36);
+  skewFit(L.mdText, ax, K.MD_BASE, L.colW, K.MD_CAP, minM, al);
   ctx.fillStyle = "#FFFFFF";
-  skewFit(L.ligaText, K.PAD, 296, L.colW, 36, 22);
+  skewFit(L.ligaText, ax, K.LIGA_BASE, L.colW, K.LIGA_CAP, minL, al);
   shadowOff();
 }
 
 function drawCrests(L){
-  const K = LAYOUT;
+  const K = layoutFor();
   shadowOn(22,.4);
   if(L.links.img)  drawMeasured(L.links.img,  L.mL, K.CREST_L, K.CREST_CY);
   if(L.rechts.img) drawMeasured(L.rechts.img, L.mR, K.CREST_R, K.CREST_CY);
@@ -431,19 +500,20 @@ function drawCrests(L){
 
 /* Sponsorenleiste — Überschrift auf 923, Logos zwischen 950 und 1042 */
 function drawSponsors(){
-  const K = LAYOUT;
+  const K = layoutFor();
   if(render.sponsors.length === 0) return;
   ctx.fillStyle = "#FFFFFF";
   setFont(sizeForCap(27));
-  skewText("WIRD PRÄSENTIERT VON", W/2, 923, "center");
+  const x0 = K.SPONSOR_X0, x1 = K.SPONSOR_X1;
+  skewText("WIRD PRÄSENTIERT VON", (x0 + x1)/2, K.SPONSOR_LABEL_BASE, "center");
   const n = render.sponsors.length;
-  const areaTop = 950, areaBottom = 1042;
-  const cellW = (W - 2*K.PAD) / n;
+  const areaTop = K.SPONSOR_TOP, areaBottom = K.SPONSOR_BOTTOM;
+  const cellW = (x1 - x0) / n;
   const maxLogoW = Math.min(cellW - 24, 330);
   const maxLogoH = Math.min(areaBottom - areaTop, 92);
   render.sponsors.forEach(function(img, i){
     if(!img) return;
-    fitContain(img, K.PAD + cellW*i + cellW/2, (areaTop + areaBottom)/2, maxLogoW, maxLogoH);
+    fitContain(img, x0 + cellW*i + cellW/2, (areaTop + areaBottom)/2, maxLogoW, maxLogoH);
   });
 }
 
@@ -452,4 +522,133 @@ function drawSponsors(){
 function drawGraphic(){
   if(draft.typ === "ergebnis") drawErgebnis();
   else drawMatchday();
+}
+
+/* ========== Band-Begegnung (Vorlage 3) ==========
+   Statt Datum oder Spielstand allein trägt das Band die Paarung:
+   Heimname – Trenner – Gastname. Der Trenner ist "VS." bei der
+   Ankündigung und der Spielstand beim Ergebnis. */
+
+function bandBegegnung(L, trenner, trennerCap){
+  const K = layoutFor();
+  const B = K.BAND;
+  const innenL = B.x0 + B.padX;
+  const innenR = W - B.padX;
+  const mitte  = (innenL + innenR) / 2;
+
+  const tCap = trennerCap || B.nameCap;
+  setFont(sizeForCap(tCap));
+  const tW = textWidth(trenner);
+
+  /* Platz je Name, abzüglich Trenner und Luft */
+  const luft = 26;
+  const platz = (innenR - innenL - tW - 2*luft) / 2;
+
+  const l = wrapLines(L.links.name.toUpperCase(),  platz, B.nameCap, 2);
+  const r = wrapLines(L.rechts.name.toUpperCase(), platz, B.nameCap, 2);
+
+  return {
+    trenner:trenner, trennerCap:tCap, tW:tW, mitte:mitte, luft:luft,
+    l:l, r:r,
+    xL: mitte - tW/2 - luft,   /* rechte Kante des Heimnamens */
+    xR: mitte + tW/2 + luft    /* linke Kante des Gastnamens */
+  };
+}
+
+function drawBand(L, P){
+  const K = layoutFor();
+  const B = K.BAND;
+  const cy = (B.y0 + B.y1) / 2;
+
+  shadowOn(12,.4);
+  ctx.fillStyle = "#FFFFFF";
+
+  /* Namen senkrecht mittig, mehrzeilig nach oben und unten verteilt */
+  function block(res, x, align){
+    setFont(sizeForCap(res.cap));
+    const n = res.zeilen.length;
+    const start = cy + res.cap/2 - (n - 1) * res.lineH / 2;
+    res.zeilen.forEach(function(z, i){
+      skewText(z, x, start + i*res.lineH, align);
+    });
+  }
+  block(P.l, P.xL, "right");
+  block(P.r, P.xR, "left");
+
+  setFont(sizeForCap(P.trennerCap));
+  skewText(P.trenner, P.mitte, cy + P.trennerCap/2 - 2, "center");
+  shadowOff();
+}
+
+
+/* ========== Spielkarte (Vorlage 3) ==========
+   Statt Wappen nebeneinander: zwei Zeilen übereinander, jede mit Wappen,
+   Name und optional einem rechtsbündigen Wert (Ergebnis-Grafik). Dazwischen
+   eine dünne Trennlinie. Lebt in einer eigenen linken Spalte, daneben
+   bleibt für das Spielerbild die ganze rechte Bildhälfte frei. */
+
+function drawFixtureRow(K, cy, img, m, name, value){
+  if(img) drawMeasured(img, m, K.ROW_CREST_X, cy);
+  ctx.fillStyle = "#FFFFFF";
+
+  /* Der Name darf nicht bis unter den Wert reichen — dessen Breite geht
+     als zusätzlicher rechter Rand in die verfügbare Breite ein. Lange
+     Vereinsnamen (Spielgemeinschaften) brechen dafür lieber auf zwei
+     Zeilen um, statt bis zur Unlesbarkeit zu schrumpfen. */
+  let maxW = K.ROW_NAME_MAX_W;
+  if(value !== undefined){
+    setFont(sizeForCap(K.ROW_SCORE_CAP));
+    maxW -= textWidth(value) + 16;
+  }
+  const res = wrapLines(name.toUpperCase(), maxW, K.ROW_NAME_CAP, 2);
+  const n = res.zeilen.length;
+  const start = cy + res.cap*0.34 - (n - 1) * res.lineH / 2;
+  res.zeilen.forEach(function(z, i){
+    skewText(z, K.ROW_TEXT_X, start + i*res.lineH, "left");
+  });
+
+  if(value !== undefined){
+    setFont(sizeForCap(K.ROW_SCORE_CAP));
+    skewText(value, K.PANEL.x1 - K.PAD, cy + K.ROW_SCORE_CAP*0.34, "right");
+  }
+}
+
+function drawFixtureDivider(K){
+  const y = (K.ROW1_CY + K.ROW2_CY) / 2;
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(K.PAD, y);
+  ctx.lineTo(K.PANEL.x1 - K.PAD, y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* Karten-Panel: deckendes, leicht abgestuftes Dunkel über der linken
+   Bildhälfte, mit einer schmalen Akzentlinie an der Kante zum Foto —
+   trennt Kartentext und Spielerfoto klar, ohne die Fototextur ganz zu
+   verdecken (Verlauf statt Volltonfläche). */
+function drawFixturePanel(K){
+  const P = K.PANEL;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0,   "rgba(7,9,13,.95)");
+  g.addColorStop(1,   "rgba(5,6,9,.98)");
+  ctx.fillStyle = g;
+  ctx.fillRect(P.x0, 0, P.x1 - P.x0, H);
+
+  ctx.fillStyle = K.PANEL_ACCENT || "#3A66E1";
+  ctx.fillRect(P.x1 - 3, 0, 3, H);
+}
+
+/* Meta-Paare unter der Spielkarte: kleines Label, darunter der Wert —
+   für Ort/Anstoß bei der Ankündigung. */
+function drawMetaPair(K, y, label, value){
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,.5)";
+  setFont(sizeForCap(K.META_LABEL_CAP));
+  skewText(label, K.PAD, y, "left");
+  ctx.fillStyle = "#FFFFFF";
+  skewFit(value, K.PAD, y + K.META_GAP, K.PANEL.x1 - K.PAD*2, K.META_VALUE_CAP, 18);
+  ctx.restore();
 }
