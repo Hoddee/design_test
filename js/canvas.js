@@ -24,10 +24,11 @@ async function buildGraphic(){
     await Promise.all(jobs);
   }catch(err){
     console.error(err);
-    alert("Mindestens ein Bild konnte nicht geladen werden. Die Grafik wird ohne dieses Bild erstellt.");
+    toast("Ein Bild fehlt — Grafik wird ohne erstellt");
   }
 
   drawGraphic();
+  document.getElementById("resultTitle").textContent = TYPEN[draft.typ].label;
   document.getElementById("hero").style.display = "none";
   document.getElementById("result").classList.add("show");
   document.getElementById("result").scrollIntoView({ behavior:"smooth", block:"start" });

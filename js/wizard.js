@@ -59,54 +59,45 @@ let lastFocused = null;
 /* Schrittkatalog — jeder Grafiktyp stellt seine Reihenfolge daraus zusammen */
 const STEP = {
   template: {
-    id:"template", title:"Vorlage auswählen",
-    desc:"Welches Design soll die Grafik bekommen?",
+    id:"template", title:"Vorlage", desc:"",
     render:renderTemplateStep,
     valid:function(){ return !!draft.template; }, error:"Bitte eine Vorlage auswählen."
   },
   homeAway: {
-    id:"homeAway", title:"Heim oder auswärts?",
-    desc:"Die Heimmannschaft steht in der Grafik links.",
+    id:"homeAway", title:"Heim oder auswärts?", desc:"",
     render:renderHomeAwayStep,
     valid:function(){ return !!draft.homeAway; }, error:"Bitte Heim oder auswärts wählen."
   },
   opponent: {
-    id:"opponent", title:"Wer ist der Gegner?",
-    desc:"Wappen aus dem Pool deiner Liga.",
+    id:"opponent", title:"Gegner", desc:"",
     render:renderOpponentStep,
     valid:function(){ return !!draft.opponent; }, error:"Bitte einen Gegner auswählen."
   },
   result: {
-    id:"result", title:"Wie ist es ausgegangen?",
-    desc:"Endstand und Torschützen deiner Mannschaft.",
+    id:"result", title:"Ergebnis", desc:"",
     render:renderResultStep,
     valid:function(){ return draft.goalsOwn !== "" && draft.goalsOpp !== ""; },
     error:"Bitte beide Torzahlen eintragen."
   },
   player: {
-    id:"player", title:"Spielerbild auswählen",
-    desc:"Erscheint freigestellt auf der rechten Seite. Optional.",
+    id:"player", title:"Spielerbild", desc:"Optional",
     render:renderPlayerStep, valid:function(){ return true; }
   },
   sponsors: {
-    id:"sponsors", title:"Sponsoren auswählen",
-    desc:"Bis zu "+MAX_SPONSORS+" Logos für die Leiste unten. Optional.",
+    id:"sponsors", title:"Sponsoren", desc:"Bis zu "+MAX_SPONSORS+", optional",
     render:renderSponsorStep, valid:function(){ return true; }
   },
   details: {
-    id:"details", title:"Spieltag, Termin und Ort",
-    desc:"Der Spielort ist passend zur Auswahl vorausgefüllt.",
+    id:"details", title:"Spieldaten", desc:"",
     render:renderDetailStep,
     valid:function(){ return !!draft.date && !!draft.time; }, error:"Bitte Datum und Anstoßzeit angeben."
   },
   detailsShort: {
-    id:"details", title:"Spieltag und Wettbewerb",
-    desc:"So erscheint es in der Kopfzeile der Grafik.",
+    id:"details", title:"Spieldaten", desc:"",
     render:renderDetailStep, valid:function(){ return true; }
   },
   summary: {
-    id:"summary", title:"Alles richtig?",
-    desc:"Prüf die Angaben und erstelle die Grafik.",
+    id:"summary", title:"Übersicht", desc:"",
     render:renderSummaryStep, valid:function(){ return true; }
   }
 };
@@ -136,11 +127,17 @@ function closeWizard(){
   if(lastFocused && lastFocused.focus) lastFocused.focus();
 }
 
-function renderStep(){
+function renderStep(richtung){
   const step = steps[stepIndex];
+  /* Der Inhalt gleitet in die Richtung, in die man geht */
+  bodyEl.classList.remove("slide-next","slide-back");
+  if(richtung){
+    void bodyEl.offsetWidth;   /* Animation neu starten */
+    bodyEl.classList.add(richtung === "back" ? "slide-back" : "slide-next");
+  }
   titleEl.textContent = step.title;
   descEl.textContent  = step.desc;
-  stepEl.textContent  = "SCHRITT "+(stepIndex+1)+" VON "+steps.length;
+  stepEl.textContent  = "Schritt "+(stepIndex+1)+" von "+steps.length;
   barEl.style.width   = (((stepIndex+1)/steps.length)*100)+"%";
   backBtn.style.visibility = stepIndex === 0 ? "hidden" : "visible";
   nextBtn.textContent = step.id === "summary" ? "Grafik erstellen" : "Weiter";
@@ -189,11 +186,11 @@ nextBtn.addEventListener("click", async function(){
   } else {
     stepIndex++;
   }
-  renderStep();
+  renderStep("next");
 });
 
 backBtn.addEventListener("click", function(){
-  if(stepIndex > 0){ stepIndex--; renderStep(); }
+  if(stepIndex > 0){ stepIndex--; renderStep("back"); }
 });
 
 document.getElementById("wizClose").addEventListener("click", closeWizard);
@@ -215,7 +212,7 @@ function tileGrid(items, isSelected, onPick, emptyText){
   grid.className = "grid-tiles";
   items.forEach(function(item){
     const tile = document.createElement("button");
-    tile.className = "tile" + (isSelected(item) ? " selected" : "");
+    tile.className = "tile-opt" + (isSelected(item) ? " selected" : "");
     const img = document.createElement("img");
     img.src = item.url; img.alt = item.name; img.loading = "lazy";
     const nm = document.createElement("span");
@@ -235,7 +232,7 @@ function renderTemplateStep(){
     function(t){ return draft.template && draft.template.file === t.file; },
     function(t, tile, grid){
       draft.template = t;
-      grid.querySelectorAll(".tile").forEach(function(x){ x.classList.remove("selected"); });
+      grid.querySelectorAll(".tile-opt").forEach(function(x){ x.classList.remove("selected"); });
       tile.classList.add("selected");
       clearError();
     },
@@ -245,8 +242,8 @@ function renderTemplateStep(){
 
 function renderHomeAwayStep(){
   const opts = [
-    { id:"heim", ic:"H", t:"Heimspiel", d:"Spielort wird automatisch auf „"+CLUB.venue+"“ gesetzt." },
-    { id:"auswaerts", ic:"A", t:"Auswärtsspiel", d:"Spielort wird aus dem Gegnernamen vorgeschlagen und ist änderbar." }
+    { id:"heim", ic:"H", t:"Heimspiel", d:CLUB.venue },
+    { id:"auswaerts", ic:"A", t:"Auswärtsspiel", d:"Spielort wird vorgeschlagen" }
   ];
   opts.forEach(function(o){
     const b = document.createElement("button");
@@ -272,7 +269,7 @@ function renderOpponentStep(){
     function(c){ return draft.opponent && draft.opponent.file === c.file; },
     function(c, tile, grid){
       draft.opponent = c;
-      grid.querySelectorAll(".tile").forEach(function(x){ x.classList.remove("selected"); });
+      grid.querySelectorAll(".tile-opt").forEach(function(x){ x.classList.remove("selected"); });
       tile.classList.add("selected");
       draft.venue = "";
       clearError();
@@ -284,11 +281,10 @@ function renderOpponentStep(){
 function renderPlayerStep(){
   const none = document.createElement("button");
   none.className = "choice" + (draft.player ? "" : " selected");
-  none.innerHTML = '<span class="ic">—</span><span><span class="t">Ohne Spielerbild</span>'+
-                   '<span class="d">Wappen und Spielinfos werden mittig größer gesetzt.</span></span>';
+  none.innerHTML = '<span class="ic">—</span><span><span class="t">Ohne Spielerbild</span></span>';
   none.addEventListener("click", function(){
     draft.player = null;
-    bodyEl.querySelectorAll(".choice, .tile").forEach(function(x){ x.classList.remove("selected"); });
+    bodyEl.querySelectorAll(".choice, .tile-opt").forEach(function(x){ x.classList.remove("selected"); });
     none.classList.add("selected");
   });
   bodyEl.appendChild(none);
@@ -296,7 +292,7 @@ function renderPlayerStep(){
   if(lib.players.length === 0){
     const p = document.createElement("div");
     p.className = "empty";
-    p.textContent = "Noch keine Spielerbilder in der Bibliothek. Sie gehören als freigestellte PNG in den Ordner „spielerbilder“.";
+    p.textContent = "Noch keine Spielerbilder. Wie du welche anlegst, steht unter Hilfe.";
     bodyEl.appendChild(p);
     return;
   }
@@ -311,7 +307,7 @@ function renderPlayerStep(){
     function(p, tile, grid){
       draft.player = p;
       bodyEl.querySelectorAll(".choice").forEach(function(x){ x.classList.remove("selected"); });
-      grid.querySelectorAll(".tile").forEach(function(x){ x.classList.remove("selected"); });
+      grid.querySelectorAll(".tile-opt").forEach(function(x){ x.classList.remove("selected"); });
       tile.classList.add("selected");
     },
     ""
@@ -322,7 +318,7 @@ function renderSponsorStep(){
   if(lib.sponsors.length === 0){
     const p = document.createElement("div");
     p.className = "empty";
-    p.textContent = "Noch keine Sponsoren-Logos in der Bibliothek. Sie gehören in den Ordner „sponsoren“.";
+    p.textContent = "Noch keine Sponsorenlogos in der Bibliothek.";
     bodyEl.appendChild(p);
     return;
   }
@@ -373,7 +369,7 @@ function renderDetailStep(){
     return { wrap:w, input:i };
   }
 
-  const md = field("Spieltag","f_matchday","text",draft.matchday,{ maxlength:"28", placeholder:"z. B. 4 — oder Pokal-Viertelfinale" });
+  const md = field("Spieltag","f_matchday","text",draft.matchday,{ maxlength:"28", placeholder:"4 oder Pokal-Viertelfinale" });
   md.input.addEventListener("input", function(e){ draft.matchday = e.target.value; });
   bodyEl.appendChild(md.wrap);
 
@@ -405,9 +401,7 @@ function renderDetailStep(){
 
   const hint = document.createElement("div");
   hint.className = "hint";
-  hint.textContent = draft.homeAway === "heim"
-    ? "Heimspiel — Spielort automatisch gesetzt, bei Bedarf überschreibbar."
-    : "Auswärtsspiel — Vorschlag aus dem Gegnernamen, bei Bedarf überschreibbar.";
+  hint.textContent = "Spielort ist ein Vorschlag und lässt sich ändern.";
   bodyEl.appendChild(hint);
 }
 
@@ -442,7 +436,7 @@ function renderSummaryStep(){
       if(idx >= 0){
         returnToSummary = true;
         stepIndex = idx;
-        renderStep();
+        renderStep("back");
       }
     });
     r.appendChild(e);
@@ -465,8 +459,7 @@ function renderSummaryStep(){
     const own = draft.goalsOwn === "" ? "–" : draft.goalsOwn;
     const opp = draft.goalsOpp === "" ? "–" : draft.goalsOpp;
     row("Endstand", heim ? own+" : "+opp : opp+" : "+own, "result");
-    const namen = draft.scorers.filter(function(x){ return x.trim(); });
-    row("Torschützen", namen.length ? namen.join(", ") : "keine", "result");
+    row("Torschützen", torschuetzenTexte().join(", "), "result");
   }
 
   row("Spielerbild", draft.player ? draft.player.name : "ohne", "player",
@@ -530,7 +523,8 @@ function renderResultStep(){
   wrap.appendChild(score);
   bodyEl.appendChild(wrap);
 
-  /* Torschützen — eine Zeile pro Name, frei eingebbar (z. B. "F. Ergezen (2)") */
+  /* Torschützen — je Zeile: wie oft getroffen + Name. In der Grafik
+     wird daraus "2x F. Ergezen, T. Rohrbach", Mehrfachtorschützen zuerst. */
   const tw = document.createElement("div");
   tw.className = "field";
   const tl = document.createElement("label");
@@ -541,46 +535,68 @@ function renderResultStep(){
   list.className = "scorer-list";
   tw.appendChild(list);
 
+  const MAX_SCORERS = 12;
+
   function zeichneListe(){
     list.innerHTML = "";
-    draft.scorers.forEach(function(name, i){
+    draft.scorers.forEach(function(sc, i){
       const row = document.createElement("div");
       row.className = "scorer-row";
+
+      const sel = document.createElement("select");
+      sel.className = "scorer-count";
+      sel.setAttribute("aria-label","Anzahl Tore");
+      for(let k = 1; k <= 9; k++){
+        const o = document.createElement("option");
+        o.value = k; o.textContent = k+"x";
+        if(k === (parseInt(sc.count,10)||1)) o.selected = true;
+        sel.appendChild(o);
+      }
+      sel.addEventListener("change", function(e){ draft.scorers[i].count = parseInt(e.target.value,10); updateCount(); });
+
       const inp = document.createElement("input");
-      inp.type = "text"; inp.value = name; inp.maxLength = 32;
-      inp.placeholder = "z. B. F. Ergezen (2)";
-      inp.addEventListener("input", function(e){ draft.scorers[i] = e.target.value; });
+      inp.type = "text"; inp.value = sc.name || ""; inp.maxLength = 30;
+      inp.placeholder = "z. B. F. Ergezen";
+      inp.addEventListener("input", function(e){ draft.scorers[i].name = e.target.value; updateCount(); });
       inp.addEventListener("keydown", function(e){
         if(e.key === "Enter"){ e.preventDefault(); neu(); }
       });
+
       const del = document.createElement("button");
       del.type = "button"; del.className = "scorer-del"; del.textContent = "✕";
       del.setAttribute("aria-label","Torschütze entfernen");
       del.addEventListener("click", function(){
         draft.scorers.splice(i,1); zeichneListe();
       });
-      row.appendChild(inp); row.appendChild(del);
+
+      row.appendChild(sel); row.appendChild(inp); row.appendChild(del);
       list.appendChild(row);
     });
+    add.disabled = draft.scorers.length >= MAX_SCORERS;
+    updateCount();
   }
   function neu(){
-    if(draft.scorers.length >= 8) return;
-    draft.scorers.push("");
+    if(draft.scorers.length >= MAX_SCORERS) return;
+    draft.scorers.push({ name:"", count:1 });
     zeichneListe();
     const inputs = list.querySelectorAll("input");
     if(inputs.length) inputs[inputs.length-1].focus();
   }
-  zeichneListe();
+  function updateCount(){
+    const tore = draft.scorers.reduce(function(a,s){ return a + (s.name.trim() ? (parseInt(s.count,10)||1) : 0); }, 0);
+    countEl.textContent = tore ? tore+" Tor"+(tore===1?"":"e")+" eingetragen" : "";
+  }
 
   const add = document.createElement("button");
   add.type = "button"; add.className = "btn btn-ghost scorer-add";
   add.textContent = "+ Torschütze";
   add.addEventListener("click", neu);
+  zeichneListe();
   tw.appendChild(add);
 
   const hint = document.createElement("div");
   hint.className = "hint";
-  hint.textContent = "Ohne Eintrag entfällt der Torschützen-Block in der Grafik.";
+  hint.textContent = "Ohne Eintrag steht ein Strich. Enter legt die nächste Zeile an.";
   tw.appendChild(hint);
 
   bodyEl.appendChild(tw);

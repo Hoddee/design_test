@@ -129,7 +129,7 @@ async function loadFont(){
 }
 
 async function loadLibrary(){
-  setConn(null,"lade Bibliothek …");
+  setConn(null,"lädt");
   try{
     const [tpl, crests, players, sponsors] = await Promise.all([
       listDir(DIRS.vorlagen),
@@ -149,9 +149,8 @@ async function loadLibrary(){
     fontReady = await loadFont();
 
     setConn("ok",
-      lib.crests.length+" Wappen · "+lib.templates.length+" Vorlagen · "+
-      lib.players.length+" Spielerbilder · "+lib.sponsors.length+" Sponsoren"+
-      (fontReady ? "" : " · Ersatzschrift")
+      lib.crests.length+" Wappen, "+lib.players.length+" Spielerbilder, "+
+      lib.sponsors.length+" Sponsoren"+(fontReady ? "" : " — Ersatzschrift aktiv")
     );
     return true;
   }catch(err){

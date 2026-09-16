@@ -60,15 +60,15 @@ const LAYOUT = {
   INFO_TEXT_X: 105,
   INFO_CAP: 28,
 
-  /* Ergebnis-Grafik */
-  SCORE_CAP: 114,         /* Versalhöhe der Tore */
-  SCORE_BASE: 688,        /* Grundlinie der Tore */
-  SCORE_DASH_W: 60,       /* Strich zwischen den Toren */
-  SCORE_DASH_H: 22,
-  SCORER_LABEL_CAP: 34,   /* "TORSCHÜTZEN:" */
-  SCORER_CAP: 28,         /* Namen */
-  SCORER_LINE_H: 37,
-  SCORER_BOTTOM: 825      /* Grundlinie der letzten Namenszeile */
+  /* Ergebnis-Grafik — unter den Wappen stehen erst die Teamnamen, dann
+     der Spielstand, darunter bis zu drei Zeilen Torschützen */
+  SCORE_CAP: 84,          /* Versalhöhe der Tore */
+  SCORE_GAP: 16,          /* Luft zwischen Teamnamen und Toren bzw. Toren und Torschützen */
+  SCORER_LABEL_CAP: 24,   /* "TORSCHÜTZEN:" */
+  SCORER_CAP: 24,         /* Namen */
+  SCORER_LINE_H: 28,
+  SCORER_MAX_LINES: 3,
+  SCORER_BOTTOM: 846      /* Grundlinie der letzten Namenszeile, Balken bei 859 */
 };
 
 /* Rechnet alle Positionen aus, ohne zu zeichnen. Der Spieler wird vor
