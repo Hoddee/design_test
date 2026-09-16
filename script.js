@@ -911,18 +911,18 @@ const LAYOUT = {
   PAD: 22,                /* linker Rand */
   BAR_TOP: 859,           /* hellblauer Balken der Vorlage */
   BAR_BOTTOM: 878,
-  HEAD_TOP: 158,          /* Oberkante des Spielerbildes */
+  HEAD_TOP: 192,          /* Oberkante des Spielerbildes, unter MATCHDAY */
   PLAYER_MAX_W: 640,      /* Notbremse bei fehlender Freistellung */
   PLAYER_GAP: 22,         /* Mindestabstand Spieler ↔ linke Elemente */
   PLAYER_INSET: 22,       /* Einzelbilder: Abstand zum rechten Rand */
-  PLAYER_OVERHANG_MAX: 90,/* Doppelbilder: höchstens so viel Anschnitt */
-  CREST_CY: 465,          /* Wappenreihe */
+  PLAYER_OVERHANG_MAX: 108,/* Doppelbilder: höchstens so viel Anschnitt, dann verkleinern */
+  CREST_CY: 462,          /* Wappenreihe */
   CREST_L: 130,           /* Mitte linkes Wappen */
   CREST_R: 436,           /* Mitte rechtes Wappen */
-  CREST_AREA: 34000,      /* sichtbare Zielfläche je Wappen */
-  CREST_MAX_W: 205,
-  CREST_MAX_H: 220,
-  NAME_BASE: 608,         /* Grundlinie der Teamnamen */
+  CREST_AREA: 32000,      /* sichtbare Zielfläche je Wappen */
+  CREST_MAX_W: 208,
+  CREST_MAX_H: 236,
+  NAME_BASE: 612,         /* Grundlinie der Teamnamen */
   NAME_CAP: 25,
   INFO_ICON_X: 49,
   INFO_TEXT_X: 105,
@@ -994,7 +994,7 @@ function computeLayout(){
     const pname = (draft.player && draft.player.name) || "";
     const zwei = /\bund\b/i.test(pname) || (b.w / b.h) > 0.72;
 
-    let s = (K.BAR_TOP - K.HEAD_TOP) / b.h;
+    let s = (K.BAR_BOTTOM - K.HEAD_TOP) / b.h;   /* Bild endet hinter dem Balken */
     if(b.w * s > K.PLAYER_MAX_W) s = K.PLAYER_MAX_W / b.w;
     let w = b.w*s, h = b.h*s;
 
