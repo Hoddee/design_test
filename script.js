@@ -757,10 +757,12 @@ function contentBox(img){
     const px = octx.getImageData(0, 0, cw, ch).data;
 
     let minX = cw, minY = ch, maxX = -1, maxY = -1, opak = 0;
+    const rowLeft = new Array(ch).fill(-1);
     for(let y = 0; y < ch; y++){
       for(let x = 0; x < cw; x++){
         if(px[(y*cw + x)*4 + 3] > 12){
           opak++;
+          if(rowLeft[y] < 0) rowLeft[y] = x;
           if(x < minX) minX = x;
           if(x > maxX) maxX = x;
           if(y < minY) minY = y;
@@ -771,6 +773,21 @@ function contentBox(img){
     if(maxX < 0){ boxCache[key] = fallback; return fallback; }
 
     const bw = maxX - minX + 1, bh = maxY - minY + 1;
+
+    /* Linke Kontur in 48 Höhenbändern, relativ zum Inhaltsrahmen und in
+       Originalpixeln. Damit lässt sich prüfen, wie weit ein Spielerbild
+       auf einer bestimmten Höhe nach links reicht. */
+    const BANDS = 48;
+    const leftProfile = [];
+    for(let k = 0; k < BANDS; k++){
+      const y0 = minY + Math.floor(bh * k / BANDS);
+      const y1 = minY + Math.floor(bh * (k+1) / BANDS);
+      let m = Infinity;
+      for(let y = y0; y < Math.max(y0+1, y1); y++){
+        if(rowLeft[y] >= 0 && rowLeft[y] < m) m = rowLeft[y];
+      }
+      leftProfile.push(m === Infinity ? bw/s : (m - minX)/s);
+    }
     const box = {
       x: minX/s,
       y: minY/s,
@@ -779,7 +796,8 @@ function contentBox(img){
       /* Anteil sichtbarer Pixel innerhalb des Inhaltsrahmens —
          ein runder oder spitzer Umriss füllt seinen Rahmen weniger
          als ein Schild und würde bei gleicher Rahmengröße kleiner wirken */
-      fill: opak / (bw*bh)
+      fill: opak / (bw*bh),
+      leftProfile: leftProfile
     };
     boxCache[key] = box;
     return box;
@@ -913,13 +931,17 @@ const LAYOUT = {
   HEAD_TOP_PAIR: 228,     /* Oberkante Doppelbild — etwas kleiner, damit
                              weniger angeschnitten werden muss */
   PLAYER_MAX_W: 640,      /* Notbremse bei fehlender Freistellung */
-  PLAYER_GAP: 22,         /* Mindestabstand Spieler ↔ linke Elemente */
+  PLAYER_GAP: 14,         /* Mindestabstand Spieler ↔ linke Elemente */
   PLAYER_INSET: 22,       /* Einzelbilder: Abstand zum rechten Rand */
   PLAYER_OVERHANG_MAX: 70, /* Doppelbilder: höchstens so viel Anschnitt, dann verkleinern */
+  PAIR_WRAP_TRIGGER: 40,  /* ab so viel nötigem Anschnitt bricht ein langer Name um */
+  PAIR_WRAP_WIDTH: 240,   /* … auf diese Breite */
   CREST_CY: 465,          /* Wappenreihe */
   CREST_L: 130,           /* Mitte linkes Wappen */
   CREST_R: 436,           /* Mitte rechtes Wappen */
-  CREST_H: 204,           /* Höhe beider Wappen — Vorgabe vom eigenen Wappen */
+  CREST_H: 204,           /* Höhe des eigenen Wappens — die Vorgabe */
+  CREST_H_OPP: 192,       /* Gegnerwappen minimal kleiner: kräftig gefüllte
+                             Wappen wirken sonst größer als das eigene */
   CREST_MAX_W: 214,       /* Bremse für sehr breite Formen */
   NAME_BASE: 608,         /* Grundlinie der Teamnamen */
   NAME_CAP: 25,
@@ -944,8 +966,10 @@ function computeLayout(){
                     : { img:render.own,      name:CLUB.name };
 
   /* Wappen */
-  L.mL = L.links.img  ? measureHeight(L.links.img,  K.CREST_H, K.CREST_MAX_W) : { w:200, h:K.CREST_H };
-  L.mR = L.rechts.img ? measureHeight(L.rechts.img, K.CREST_H, K.CREST_MAX_W) : { w:200, h:K.CREST_H };
+  const hL = L.heim ? K.CREST_H : K.CREST_H_OPP;
+  const hR = L.heim ? K.CREST_H_OPP : K.CREST_H;
+  L.mL = L.links.img  ? measureHeight(L.links.img,  hL, K.CREST_MAX_W) : { w:200, h:hL };
+  L.mR = L.rechts.img ? measureHeight(L.rechts.img, hR, K.CREST_MAX_W) : { w:200, h:hR };
 
   /* VS. mittig zwischen den Innenkanten */
   const innenL = K.CREST_L + L.mL.w/2;
@@ -972,20 +996,52 @@ function computeLayout(){
   L.ortText  = (draft.venue||"").toUpperCase();
   L.zeitText = (formatDate(draft.date)+" "+(draft.time||"").replace(":",".")+" UHR").toUpperCase();
 
-  /* Wie weit reichen die linken Elemente nach rechts? Daraus ergibt sich
-     die Grenze für das Spielerbild. MATCHDAY zählt nicht — der Kopf darf
-     wie in der Vorlage daneben stehen. */
+  /* Linke Elemente mit ihrem Höhenbereich und ihrer rechten Kante.
+     Der Spieler wird zeilenweise dagegen geprüft: auf Höhe der Wappen
+     zählt seine Ellenbogenbreite, auf Höhe der Namen nur seine Hüfte.
+     MATCHDAY zählt nicht — der Kopf darf wie in der Vorlage daneben stehen. */
   const hasPlayer = !!render.player;
   const colW = hasPlayer ? 545 : 860;
-  const kanten = [
-    K.PAD + fittedWidth(L.ligaText, colW, 36, 22),
-    K.CREST_R + L.mR.w/2,
-    K.CREST_R + L.nameR.breite/2,
-    K.INFO_TEXT_X + fittedWidth(L.ortText,  colW - 70, K.INFO_CAP, 18),
-    K.INFO_TEXT_X + fittedWidth(L.zeitText, colW - 70, K.INFO_CAP, 18)
-  ];
   L.colW = colW;
-  L.rechteKante = Math.max.apply(null, kanten);
+
+  const ligaKante = K.PAD + fittedWidth(L.ligaText, colW, 36, 22);
+  const ortKante  = K.INFO_TEXT_X + fittedWidth(L.ortText,  colW - 70, K.INFO_CAP, 18);
+  const zeitKante = K.INFO_TEXT_X + fittedWidth(L.zeitText, colW - 70, K.INFO_CAP, 18);
+
+  let hindernisse;
+  function bauHindernisse(){
+    const nameLinesH = L.nameR.zeilen.length * L.nameR.lineH;
+    hindernisse = [
+      { y0:258, y1:300, x: ligaKante },
+      { y0:K.CREST_CY - L.mR.h/2, y1:K.CREST_CY + L.mR.h/2, x: K.CREST_R + L.mR.w/2 },
+      { y0:K.NAME_BASE - K.NAME_CAP - 4, y1:K.NAME_BASE + nameLinesH - L.nameR.lineH + 6,
+        x: K.CREST_R + L.nameR.breite/2 },
+      { y0:680, y1:714, x: ortKante },
+      { y0:780, y1:814, x: zeitKante }
+    ];
+    L.rechteKante = Math.max.apply(null, hindernisse.map(function(h){ return h.x; }));
+  }
+  bauHindernisse();
+
+  /* Kleinstes erlaubtes x für das Spielerbild bei Skalierung s und
+     Oberkante y: für jedes Hindernis wird die Spielerkontur nur auf
+     dessen Höhe betrachtet. */
+  function minXFuer(b, s, y, h){
+    const prof = b.leftProfile;
+    let need = -Infinity;
+    hindernisse.forEach(function(hd){
+      const f0 = (hd.y0 - y) / h, f1 = (hd.y1 - y) / h;
+      if(f1 <= 0 || f0 >= 1) return;               /* Hindernis nicht auf Spielerhöhe */
+      const k0 = Math.max(0, Math.floor(f0 * prof.length));
+      const k1 = Math.min(prof.length - 1, Math.ceil(f1 * prof.length));
+      let links = Infinity;
+      for(let k = k0; k <= k1; k++) if(prof[k] < links) links = prof[k];
+      if(links === Infinity) return;
+      const x = hd.x + K.PLAYER_GAP - links * s;
+      if(x > need) need = x;
+    });
+    return need === -Infinity ? -Infinity : need;
+  }
 
   /* Spielerbild */
   if(hasPlayer){
@@ -994,31 +1050,43 @@ function computeLayout(){
     const zwei = /\bund\b/i.test(pname) || (b.w / b.h) > 0.72;
 
     const oben = zwei ? K.HEAD_TOP_PAIR : K.HEAD_TOP;
-    let s = (K.BAR_BOTTOM - oben) / b.h;         /* Bild endet hinter dem Balken */
+    let s = (K.BAR_BOTTOM - oben) / b.h;
     if(b.w * s > K.PLAYER_MAX_W) s = K.PLAYER_MAX_W / b.w;
-    let w = b.w*s, h = b.h*s;
+    let w = b.w*s, h = b.h*s, y = K.BAR_BOTTOM - h;
 
-    const minX = L.rechteKante + K.PLAYER_GAP;
+    let minX = minXFuer(b, s, y, h);
     let x;
     if(zwei){
-      /* So weit links wie erlaubt, nur so viel Anschnitt wie nötig */
       x = Math.max(W - w, minX);
+
+      /* Ein langer einzeiliger Gegnername liegt genau auf Ellenbogenhöhe
+         und drückt den Spieler nach rechts. Bräuchte er deshalb mehr als
+         ein wenig Anschnitt, bricht der Name auf zwei Zeilen um — so wie
+         in der Vorlage — und schafft Platz. */
+      if(x - (W - w) > K.PAIR_WRAP_TRIGGER && L.nameR.breite > K.PAIR_WRAP_WIDTH){
+        L.nameR = wrapLines(L.rechts.name.toUpperCase(), K.PAIR_WRAP_WIDTH, K.NAME_CAP, 2);
+        bauHindernisse();
+        minX = minXFuer(b, s, y, h);
+        x = Math.max(W - w, minX);
+      }
       if(x - (W - w) > K.PLAYER_OVERHANG_MAX){
-        /* zu viel Anschnitt nötig → verkleinern */
+        /* zu viel Anschnitt nötig → verkleinern und einmal nachrechnen */
         s *= (W + K.PLAYER_OVERHANG_MAX - minX) / w;
-        w = b.w*s; h = b.h*s;
-        x = minX;
+        w = b.w*s; h = b.h*s; y = K.BAR_BOTTOM - h;
+        minX = minXFuer(b, s, y, h);
+        x = Math.max(W - w + K.PLAYER_OVERHANG_MAX, minX);
+        x = Math.min(x, W - w + K.PLAYER_OVERHANG_MAX);
       }
     } else {
-      /* Ganz zeigen, mit etwas Abstand zum Rand; wenn zu breit, verkleinern */
       x = W - w - K.PLAYER_INSET;
       if(x < minX){
         s *= (W - K.PLAYER_INSET - minX) / w;
-        w = b.w*s; h = b.h*s;
-        x = minX;
+        w = b.w*s; h = b.h*s; y = K.BAR_BOTTOM - h;
+        minX = minXFuer(b, s, y, h);
+        x = Math.max(W - w - K.PLAYER_INSET, minX);
       }
     }
-    L.player = { b:b, x:x, y:K.BAR_BOTTOM - h, w:w, h:h };
+    L.player = { b:b, x:x, y:y, w:w, h:h };
   } else {
     L.player = null;
   }
