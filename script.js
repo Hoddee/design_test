@@ -798,15 +798,13 @@ function fitContain(img, cx, cy, maxW, maxH){
   return { w:w, h:h };
 }
 
-/* Maße für ein Wappen, sodass alle Wappen etwa gleich viel sichtbare
-   Fläche einnehmen. Ein rundes Wappen wird dadurch etwas breiter als ein
-   Schild gesetzt, ein spitzes etwas höher — optisch wirken sie gleich groß.
-   maxW/maxH begrenzen Ausreißer. Zeichnet nichts. */
-function measureArea(img, targetArea, maxW, maxH){
+/* Maße für ein Wappen: alle Wappen bekommen dieselbe Höhe wie das
+   eigene Vereinswappen, die Breite folgt aus der Form. Nur sehr breite
+   Wappen werden über maxW gebremst. Zeichnet nichts. */
+function measureHeight(img, height, maxW){
   const b = contentBox(img);
-  const sichtbar = b.w * b.h * Math.max(0.35, b.fill);
-  let s = Math.sqrt(targetArea / sichtbar);
-  s = Math.min(s, maxW/b.w, maxH/b.h);
+  let s = height / b.h;
+  if(b.w * s > maxW) s = maxW / b.w;
   return { b:b, w:b.w*s, h:b.h*s };
 }
 
@@ -911,18 +909,19 @@ const LAYOUT = {
   PAD: 22,                /* linker Rand */
   BAR_TOP: 859,           /* hellblauer Balken der Vorlage */
   BAR_BOTTOM: 878,
-  HEAD_TOP: 192,          /* Oberkante des Spielerbildes, unter MATCHDAY */
+  HEAD_TOP: 192,          /* Oberkante Einzelbild, unter MATCHDAY */
+  HEAD_TOP_PAIR: 228,     /* Oberkante Doppelbild — etwas kleiner, damit
+                             weniger angeschnitten werden muss */
   PLAYER_MAX_W: 640,      /* Notbremse bei fehlender Freistellung */
   PLAYER_GAP: 22,         /* Mindestabstand Spieler ↔ linke Elemente */
   PLAYER_INSET: 22,       /* Einzelbilder: Abstand zum rechten Rand */
-  PLAYER_OVERHANG_MAX: 108,/* Doppelbilder: höchstens so viel Anschnitt, dann verkleinern */
-  CREST_CY: 462,          /* Wappenreihe */
+  PLAYER_OVERHANG_MAX: 70, /* Doppelbilder: höchstens so viel Anschnitt, dann verkleinern */
+  CREST_CY: 465,          /* Wappenreihe */
   CREST_L: 130,           /* Mitte linkes Wappen */
   CREST_R: 436,           /* Mitte rechtes Wappen */
-  CREST_AREA: 32000,      /* sichtbare Zielfläche je Wappen */
-  CREST_MAX_W: 208,
-  CREST_MAX_H: 236,
-  NAME_BASE: 612,         /* Grundlinie der Teamnamen */
+  CREST_H: 204,           /* Höhe beider Wappen — Vorgabe vom eigenen Wappen */
+  CREST_MAX_W: 214,       /* Bremse für sehr breite Formen */
+  NAME_BASE: 608,         /* Grundlinie der Teamnamen */
   NAME_CAP: 25,
   INFO_ICON_X: 49,
   INFO_TEXT_X: 105,
@@ -945,8 +944,8 @@ function computeLayout(){
                     : { img:render.own,      name:CLUB.name };
 
   /* Wappen */
-  L.mL = L.links.img  ? measureArea(L.links.img,  K.CREST_AREA, K.CREST_MAX_W, K.CREST_MAX_H) : { w:200, h:200 };
-  L.mR = L.rechts.img ? measureArea(L.rechts.img, K.CREST_AREA, K.CREST_MAX_W, K.CREST_MAX_H) : { w:200, h:200 };
+  L.mL = L.links.img  ? measureHeight(L.links.img,  K.CREST_H, K.CREST_MAX_W) : { w:200, h:K.CREST_H };
+  L.mR = L.rechts.img ? measureHeight(L.rechts.img, K.CREST_H, K.CREST_MAX_W) : { w:200, h:K.CREST_H };
 
   /* VS. mittig zwischen den Innenkanten */
   const innenL = K.CREST_L + L.mL.w/2;
@@ -994,7 +993,8 @@ function computeLayout(){
     const pname = (draft.player && draft.player.name) || "";
     const zwei = /\bund\b/i.test(pname) || (b.w / b.h) > 0.72;
 
-    let s = (K.BAR_BOTTOM - K.HEAD_TOP) / b.h;   /* Bild endet hinter dem Balken */
+    const oben = zwei ? K.HEAD_TOP_PAIR : K.HEAD_TOP;
+    let s = (K.BAR_BOTTOM - oben) / b.h;         /* Bild endet hinter dem Balken */
     if(b.w * s > K.PLAYER_MAX_W) s = K.PLAYER_MAX_W / b.w;
     let w = b.w*s, h = b.h*s;
 
