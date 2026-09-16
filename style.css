@@ -206,3 +206,54 @@
     .hero{padding:38px 20px;}
     .hero h2{font-size:32px;}
   }
+
+
+/* ---------- Typauswahl auf der Startseite ---------- */
+.type-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;max-width:560px;margin:0 auto;
+}
+.type-card{
+  background:var(--card);border:1.5px solid var(--line);border-radius:16px;
+  padding:22px 18px;cursor:pointer;text-align:left;
+  display:flex;flex-direction:column;gap:6px;
+  font-family:'Inter',sans-serif;color:var(--text);
+  transition:border-color .15s,background .15s,transform .12s;
+}
+.type-card:hover:not(:disabled){border-color:var(--accent);background:var(--card-hi);transform:translateY(-2px);}
+.type-card:disabled{opacity:.45;cursor:not-allowed;}
+.type-card:focus-visible{outline:2px solid #6EA8FE;outline-offset:2px;}
+.type-icon{
+  font-family:'Anton',sans-serif;font-size:22px;color:var(--accent-hi);
+  transform:skewX(-9deg);display:inline-block;margin-bottom:4px;
+}
+.type-title{font-size:16px;font-weight:600;}
+.type-desc{font-size:12.5px;color:var(--text-dim);line-height:1.45;}
+
+/* ---------- Ergebnis-Schritt ---------- */
+.score-row{
+  display:flex;align-items:center;gap:14px;justify-content:center;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 14px;
+}
+.score-team{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;min-width:0;}
+.score-team img{width:52px;height:52px;object-fit:contain;}
+.score-name{font-size:12px;color:var(--text-dim);text-align:center;line-height:1.3;}
+.score-input{
+  width:84px;padding:8px 6px;text-align:center;
+  font-family:'Anton',sans-serif;font-size:34px;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--text);
+  -moz-appearance:textfield;
+}
+.score-input::-webkit-outer-spin-button,.score-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.score-input:focus{outline:none;border-color:var(--accent);}
+.score-sep{font-family:'Anton',sans-serif;font-size:36px;color:var(--text-faint);padding-top:56px;}
+
+.scorer-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.scorer-row{display:flex;gap:8px;}
+.scorer-row input{flex:1;}
+.scorer-del{
+  width:42px;border:1px solid var(--line);background:var(--card);color:var(--text-dim);
+  border-radius:10px;cursor:pointer;font-size:14px;
+}
+.scorer-del:hover{color:var(--danger);border-color:var(--danger);}
+.scorer-add{width:100%;flex:none;}

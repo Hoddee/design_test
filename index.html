@@ -25,8 +25,19 @@
 
   <div class="hero" id="hero">
     <h2>Spieltags-Grafiken</h2>
-    <p>Vorlage, Gegner, Spielerbild und Sponsoren auswählen — die Grafik entsteht automatisch im Vereinsdesign.</p>
-    <button class="btn btn-primary btn-lg" id="startBtn" disabled>Neue Spielankündigung erstellen</button>
+    <p>Was soll es werden? Vorlage, Gegner, Spielerbild und Sponsoren wählst du danach Schritt für Schritt.</p>
+    <div class="type-grid">
+      <button class="type-card" data-start="matchday" disabled>
+        <span class="type-icon">VS</span>
+        <span class="type-title">Spielankündigung</span>
+        <span class="type-desc">Nächste Partie mit Anstoß und Spielort</span>
+      </button>
+      <button class="type-card" data-start="ergebnis" disabled>
+        <span class="type-icon">2:1</span>
+        <span class="type-title">Ergebnis</span>
+        <span class="type-desc">Endstand und Torschützen nach dem Spiel</span>
+      </button>
+    </div>
   </div>
 
   <div class="result" id="result">
@@ -64,6 +75,12 @@
   </div>
 </div>
 
-<script src="script.js" defer></script>
+<script src="js/config.js" defer></script>
+<script src="js/library.js" defer></script>
+<script src="js/canvas.js" defer></script>
+<script src="js/layout-matchday.js" defer></script>
+<script src="js/layout-ergebnis.js" defer></script>
+<script src="js/wizard.js" defer></script>
+<script src="js/app.js" defer></script>
 </body>
 </html>
