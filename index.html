@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SC Fornsbach — Grafik-Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="masthead">
+    <div class="club">
+      <img id="clubLogo" alt="" src="">
+      <h1>SC Fornsbach</h1>
+    </div>
+    <span class="spacer"></span>
+    <span class="conn"><span class="dot" id="connDot"></span><span id="connText">verbinde …</span></span>
+  </div>
+
+  <div class="hero" id="hero">
+    <h2>Spieltags-Grafiken</h2>
+    <p>Vorlage, Gegner, Spielerbild und Sponsoren auswählen — die Grafik entsteht automatisch im Vereinsdesign.</p>
+    <button class="btn btn-primary btn-lg" id="startBtn" disabled>Neue Spielankündigung erstellen</button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-canvas">
+      <canvas id="canvas" width="1080" height="1080"></canvas>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-ghost" id="editBtn">Angaben ändern</button>
+      <button class="btn btn-ghost" id="newBtn">Neue Grafik</button>
+      <button class="btn btn-primary" id="downloadBtn">PNG speichern</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="wizOverlay">
+  <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+    <div class="wiz-head">
+      <div class="wiz-top">
+        <span class="wiz-step" id="wizStep">SCHRITT 1 VON 7</span>
+        <span class="spacer"></span>
+        <button class="close" id="wizClose" aria-label="Abbrechen">✕</button>
+      </div>
+      <div class="bar"><i id="wizBar"></i></div>
+      <h2 id="wizTitle">Vorlage auswählen</h2>
+      <p id="wizDesc">Welches Design soll die Grafik bekommen?</p>
+    </div>
+    <div class="wiz-body" id="wizBody"></div>
+    <div class="wiz-foot">
+      <button class="btn btn-ghost" id="wizBack">Zurück</button>
+      <span class="spacer"></span>
+      <span class="count" id="wizCount"></span>
+      <button class="btn btn-primary" id="wizNext">Weiter</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js" defer></script>
+</body>
+</html>
