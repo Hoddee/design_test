@@ -50,6 +50,19 @@ a{color:var(--accent-hi);}
   outline:2px solid var(--accent-hi);outline-offset:3px;border-radius:6px;
 }
 
+/* ---------- Scrollleisten ---------- */
+/* Webkit: Chrome, Safari, Edge */
+::-webkit-scrollbar{ width:6px; height:6px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{
+  background:var(--line-hi);
+  border-radius:999px;
+}
+::-webkit-scrollbar-thumb:hover{ background:var(--text-faint); }
+::-webkit-scrollbar-corner{ background:transparent; }
+/* Firefox */
+*{ scrollbar-width:thin; scrollbar-color:var(--line-hi) transparent; }
+
 .display{
   font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.3px;
   transform:skewX(-9deg);display:inline-block;transform-origin:left bottom;
