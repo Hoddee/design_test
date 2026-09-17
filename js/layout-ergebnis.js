@@ -54,7 +54,7 @@ function computeLayoutErgebnis(){
   if(namen.length <= 2 && namen.length <= maxLines){
     L.scorerLines = { cap:K.SCORER_CAP, lineH:K.SCORER_LINE_H, zeilen:namen };
   } else {
-    L.scorerLines = wrapNamen(namen, L.colW - K.PAD, K.SCORER_CAP, maxLines);
+    L.scorerLines = wrapNamen(namen, K.SCORER_MAX_W || (L.colW - K.PAD), K.SCORER_CAP, maxLines);
   }
   const n = L.scorerLines.zeilen.length;
   L.scorerFirstBase = K.SCORER_BOTTOM - (n - 1) * K.SCORER_LINE_H;
@@ -66,6 +66,13 @@ function computeLayoutErgebnis(){
     Math.max.apply(null, L.scorerLines.zeilen.map(function(z){ return textWidth(z); }))
   );
 
+  /* Gilt für beide Zeichnungswege: rechtsbündig nur, wenn nicht per
+     SCORER_ALIGN ausdrücklich anders vorgegeben (siehe Zeichenfunktion). */
+  const scorerRight = K.SCORER_ALIGN ? K.SCORER_ALIGN === "right" : L.rechtsSatz;
+    L.scorerX = (!scorerRight && K.SCORER_X !== undefined)
+    ? K.CREST_L - L.mL.w/2
+    : K.SCORER_X;
+
   function hindernisse(){
     const nameLinesH = L.nameR.zeilen.length * L.nameR.lineH;
     const h = [{ y0:K.LIGA_BASE - K.LIGA_CAP - 4, y1:K.LIGA_BASE + 4, x:L.ligaKante }];
@@ -75,8 +82,13 @@ function computeLayoutErgebnis(){
       h.push({ y0:K.NAME_BASE - K.NAME_CAP - 4,
                y1:K.NAME_BASE + L.nameL.zeilen.length * L.nameL.lineH - L.nameL.lineH + 6,
                x:K.CREST_L - L.nameL.breite/2 });
+      /* Linksbündige Torschützenliste: ihre linke Kante ist bereits die
+         Grenze für den links stehenden Spieler, unabhängig von der Breite. */
+      const scorerLeftX = scorerRight
+        ? K.TEXT_X - (L.scorerKante - K.PAD)
+        : (L.scorerX !== undefined ? L.scorerX : K.PAD);
       h.push({ y0:L.scorerLabelBase - K.SCORER_LABEL_CAP - 4, y1:K.SCORER_BOTTOM + 6,
-               x:K.TEXT_X - (L.scorerKante - K.PAD) });
+               x:scorerLeftX });
       if(!L.band) h.push({ y0:L.scoreBase - K.SCORE_CAP - 6, y1:L.scoreBase + 8,
                            x:K.CREST_L - L.scoreWR/2 });
     } else {
@@ -135,6 +147,7 @@ function drawErgebnis(){
   if(K.PANEL){ drawErgebnisPanel(K, L); return; }
 
   drawBackground();
+  drawScrim(K);
   drawPlayer(L);
   drawTopLogo();
   drawHeader(L, "ERGEBNIS");
@@ -173,8 +186,13 @@ function drawErgebnis(){
     shadowOff();
   }
 
-  const sx = L.rechtsSatz ? K.TEXT_X : K.PAD;
-  const sa = L.rechtsSatz ? "right" : "left";
+  /* Ein rechtsbündiger Fließtext aus mehreren Zeilen wirkt unruhig —
+     die Torschützenliste bleibt deshalb linksbündig, auch wenn der
+     Rest der Vorlage rechtsbündig gesetzt ist. Sie hängt sich dafür an
+     die Spalte der Wappen/Tore statt an den Rand der Box. */
+  const scorerRight = K.SCORER_ALIGN ? K.SCORER_ALIGN === "right" : L.rechtsSatz;
+  const sx = scorerRight ? K.TEXT_X : (L.scorerX !== undefined ? L.scorerX : K.PAD);
+  const sa = scorerRight ? "right" : "left";
   shadowOn(14,.45);
   ctx.fillStyle = "#FFFFFF";
   setFont(sizeForCap(K.SCORER_LABEL_CAP));
@@ -185,8 +203,8 @@ function drawErgebnis(){
   });
   shadowOff();
 
-  drawStrip();
-  drawSponsors();
+  if(K.CHIP_TOP) drawSponsorChips(K);
+  else { drawStrip(); drawSponsors(); }
 }
 
 /* Spielkarte: Ergebnis-Version. Jede Team-Zeile trägt ihre Tore

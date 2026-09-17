@@ -37,10 +37,32 @@ function computeLayoutMatchday(){
   L.meta = !!K.META_BASE;
   if(L.meta) L.metaText = L.ortText + "  ·  " + L.zeitText;
 
-  const ortW  = fittedWidth(L.ortText,  L.colW - 70, K.INFO_CAP, 18);
-  const zeitW = fittedWidth(L.zeitText, L.colW - 70, K.INFO_CAP, 18);
-  const ortKante  = L.rechtsSatz ? K.TEXT_X - ortW  : K.INFO_TEXT_X + ortW;
-  const zeitKante = L.rechtsSatz ? K.TEXT_X - zeitW : K.INFO_TEXT_X + zeitW;
+  /* Bei rechtsbündigem Satz zeichnet skewFit mit voller Spaltenbreite
+     (keine Reserve für ein links stehendes Icon nötig, das Icon hängt
+     hier ja rechts vor dem Text) — die Breitenmessung muss also densel-
+     ben Spielraum annehmen wie das tatsächliche Zeichnen, sonst landet
+     das Icon auf Basis eines zu schmal geschätzten Textes zu weit rechts. */
+  const infoMaxW = L.rechtsSatz ? L.colW : L.colW - 70;
+  const ortW  = fittedWidth(L.ortText,  infoMaxW, K.INFO_CAP, 18);
+  const zeitW = fittedWidth(L.zeitText, infoMaxW, K.INFO_CAP, 18);
+  L.ortW = ortW; L.zeitW = zeitW;
+  const iconGap = K.INFO_ICON_GAP || 0;
+
+  /* Symbol direkt vor dem jeweiligen Text — bei rechtsbündigem Satz
+     je Zeile eigene Position, abhängig von der tatsächlichen Textbreite,
+     statt fest an der Wappenkante zu hängen (das riss eine große Lücke
+     zwischen Symbol und kürzerem Text auf). */
+  if(iconGap){
+    L.infoIconR = K.INFO_ICON_R || 26;
+    L.infoIconOrtX  = K.TEXT_X - ortW  - iconGap - L.infoIconR;
+    L.infoIconZeitX = K.TEXT_X - zeitW - iconGap - L.infoIconR;
+  }
+  const ortKante  = L.rechtsSatz
+    ? (iconGap ? L.infoIconOrtX - L.infoIconR : K.TEXT_X - ortW)
+    : K.INFO_TEXT_X + ortW;
+  const zeitKante = L.rechtsSatz
+    ? (iconGap ? L.infoIconZeitX - L.infoIconR : K.TEXT_X - zeitW)
+    : K.INFO_TEXT_X + zeitW;
 
   function hindernisse(){
     const nameLinesH = L.nameR.zeilen.length * L.nameR.lineH;
@@ -109,6 +131,7 @@ function drawMatchday(){
   if(K.PANEL){ drawMatchdayPanel(K, L); return; }
 
   drawBackground();
+  drawScrim(K);
   drawPlayer(L);
   drawTopLogo();
   drawHeader(L, "MATCHDAY");
@@ -142,21 +165,35 @@ function drawMatchday(){
     shadowOn(14,.45);
     ctx.fillStyle = "#FFFFFF";
     if(L.rechtsSatz){
-      skewFit(L.ortText,  K.TEXT_X, K.INFO_ORT_BASE,  L.colW, K.INFO_CAP, 18, "right");
-      skewFit(L.zeitText, K.TEXT_X, K.INFO_ZEIT_BASE, L.colW, K.INFO_CAP, 18, "right");
+      if(K.INFO_ICON_GAP){
+        const r  = L.infoIconR;
+        const dy = K.INFO_ICON_DY != null ? K.INFO_ICON_DY : -13;
+        drawPin(L.infoIconOrtX, K.INFO_ORT_BASE + dy, r);
+        ctx.fillStyle = "#FFFFFF";
+        skewFit(L.ortText, K.TEXT_X, K.INFO_ORT_BASE, L.colW, K.INFO_CAP, 18, "right");
+        drawClock(L.infoIconZeitX, K.INFO_ZEIT_BASE + dy, r-1);
+        ctx.fillStyle = "#FFFFFF";
+        skewFit(L.zeitText, K.TEXT_X, K.INFO_ZEIT_BASE, L.colW, K.INFO_CAP, 18, "right");
+}       else {
+        skewFit(L.ortText,  K.TEXT_X, K.INFO_ORT_BASE,  L.colW, K.INFO_CAP, 18, "right");
+        skewFit(L.zeitText, K.TEXT_X, K.INFO_ZEIT_BASE, L.colW, K.INFO_CAP, 18, "right");
+      }
     } else {
-      drawPin(K.INFO_ICON_X, K.INFO_ORT_BASE - 13, 37);
+      const r1 = K.INFO_ICON_R  || 37;
+      const r2 = K.INFO_ICON_R2 || K.INFO_ICON_R || 36;
+      const dy = K.INFO_ICON_DY != null ? K.INFO_ICON_DY : -13;
+      drawPin(K.INFO_ICON_X, K.INFO_ORT_BASE + dy, r1);
       ctx.fillStyle = "#FFFFFF";
       skewFit(L.ortText, K.INFO_TEXT_X, K.INFO_ORT_BASE, L.colW - 70, K.INFO_CAP, 18);
-      drawClock(K.INFO_ICON_X, K.INFO_ZEIT_BASE - 13, 36);
+      drawClock(K.INFO_ICON_X, K.INFO_ZEIT_BASE + dy, r2);
       ctx.fillStyle = "#FFFFFF";
       skewFit(L.zeitText, K.INFO_TEXT_X, K.INFO_ZEIT_BASE, L.colW - 70, K.INFO_CAP, 18);
     }
     shadowOff();
   }
 
-  drawStrip();
-  drawSponsors();
+  if(K.CHIP_TOP) drawSponsorChips(K);
+  else { drawStrip(); drawSponsors(); }
 }
 
 /* Spielkarte: Panel links mit Titel, zwei Team-Zeilen, Ort/Anstoß als

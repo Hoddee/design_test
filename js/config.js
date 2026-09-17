@@ -93,78 +93,132 @@ const PROFILES = {
   /* Grauer Kasten (x 38–1041, y 39–1040) im blauen Grunge-Rahmen.
      Alles bleibt im Kasten. Ein selbst gezeichneter dunkler Streifen
      unten bildet die Sponsorenzone und kaschiert den Spieler-Schnitt. */
-  /* VORLAGE 2 — gespiegelt.
-     Der Spieler steht links und wird am Kastenrand angeschnitten, der
-     gesamte Satz steht rechtsbündig. Ort und Zeit kommen ohne Symbole
-     aus, das hält die rechte Kante ruhig. */
-  "Vorlage 2": {
-    PAD: 78, RIGHT_EDGE: 1041,
-    ALIGN: "right", TEXT_X: 1001,
-    PLAYER_SIDE: "left", PLAYER_LEFT_EDGE: 6, PLAYER_OVERHANG_MAX: 70,
-    TITLE_BASE: 194, TITLE_CAP: 112, TITLE_MAX_W: 930,
-    MD_BASE: 256, MD_CAP: 52,
-    LIGA_BASE: 300, LIGA_CAP: 31,
-    LOGO_X: 108, LOGO_Y: 100, LOGO_SIZE: 56,
-    CREST_L: 668, CREST_R: 900, CREST_CY: 452,
-    CREST_H: 164, CREST_H_OPP: 154, CREST_MAX_W: 190,
-    NAME_BASE: 570, NAME_CAP: 23, NAME_MAX_W: 208,
-    INFO_CAP: 30, INFO_ORT_BASE: 672, INFO_ZEIT_BASE: 726,
-    HEAD_TOP: 176, HEAD_TOP_PAIR: 206,
-    BAR_TOP: 856, BAR_BOTTOM: 858,
-    PLAYER_MAX_W: 620,
-    STRIP: { y0: 856, y1: 1040, x0: 38, x1: 1041, color: "rgba(0,0,0,.28)" },
-    SPONSOR_LABEL_BASE: 896, SPONSOR_TOP: 912, SPONSOR_BOTTOM: 1026,
-    SPONSOR_X0: 78, SPONSOR_X1: 1001,
-    COL_W: 470, COL_W_FREE: 830,
-    SCORE_CAP: 86, SCORE_GAP: 14,
-    SCORER_CAP: 22, SCORER_LINE_H: 26, SCORER_BOTTOM: 860, SCORER_MAX_LINES: 3
+  /* VORLAGE2 — gespiegelt: Spielerbild links, alle Infos rechtsbündig.
+     Kastenbreite ~1002 (rechts davon beginnt der Rahmensaum der Vorlage,
+     da geht nichts mehr hinein — auch nicht Spieler oder Logo). Fuß der
+     Bilddatei (ab y≈810) trägt die Sponsoren. */
+  "Vorlage2": {
+    PAD: 40, RIGHT_EDGE: 1002,
+    ALIGN: "right", TEXT_X: 962,
+    PLAYER_SIDE: "left", PLAYER_LEFT_EDGE: 0, PLAYER_GAP: 18,
+    PLAYER_MAX_W: 600, PLAYER_OVERHANG_MAX: 70,
+
+    LOGO_X: 70, LOGO_Y: 78, LOGO_SIZE: 56,
+
+    TITLE_BASE: 160, TITLE_CAP: 108, TITLE_MIN_CAP: 56, TITLE_MAX_W: 860,
+    MD_BASE: 216, MD_CAP: 44, MD_MIN_CAP: 22,
+    LIGA_BASE: 256, LIGA_CAP: 27, LIGA_MIN_CAP: 16,
+
+    CREST_CY: 398, CREST_L: 630, CREST_R: 862,
+    CREST_H: 150, CREST_H_OPP: 140, CREST_MAX_W: 158,
+    NAME_BASE: 512, NAME_CAP: 23, NAME_MAX_W: 210,
+
+    INFO_CAP: 27, INFO_ORT_BASE: 608, INFO_ZEIT_BASE: 660,
+    INFO_ICON_GAP: 20, INFO_ICON_R: 15, INFO_ICON_DY: -10,
+
+    COL_W: 390, COL_W_FREE: 390,
+
+    /* Trennlinie zum dunkleren Fuß der Bilddatei, vermessen: y≈810 */
+    HEAD_TOP: 168, HEAD_TOP_PAIR: 204,
+    BAR_TOP: 810, BAR_BOTTOM: 812,
+
+    /* Deutlich mehr Abstand zwischen Trennlinie und "WIRD PRÄSENTIERT
+       VON" als zuvor — auf Wunsch mehr Luft nach oben im Sponsorenfuß. */
+    SPONSOR_LABEL_BASE: 868, SPONSOR_TOP: 888, SPONSOR_BOTTOM: 1028,
+    SPONSOR_X0: 40, SPONSOR_X1: 962,
+
+    /* Ergebnis: Torschützen linksbündig unter der Wappenspalte, Breite
+       bleibt sicher innerhalb des Kastens (Ende bei 630+360=990) */
+    SCORER_ALIGN: "left", SCORER_X: 630, SCORER_MAX_W: 360,
+    SCORE_CAP: 68, SCORE_GAP: 14,
+    SCORER_LABEL_CAP: 19, SCORER_CAP: 22, SCORER_LINE_H: 26,
+    SCORER_BOTTOM: 780, SCORER_MAX_LINES: 3
   },
 
-  /* VORLAGE 3 — Spielkarte statt Balken.
-     Eine feste linke Spalte (Kartenpanel) trägt Titel, beide Teams
-     zeilenweise übereinander mit Trennlinie, und darunter Ort/Anstoß
-     bzw. Torschützen. Das Spielerbild bekommt die komplette rechte
-     Bildhälfte und blutet bis zum unteren Rand aus. Das blaue Band der
-     Vorlage bleibt sichtbar, wo es nicht vom Panel verdeckt wird, und
-     trägt dort die Sponsorenzeile — wie ein Sash über dem Foto. */
+  /* VORLAGE 3 — Podest.
+     Neue Bilddatei (Stand 17.09.): kein Kartenpanel mehr, sondern ein
+     randloser dunkelblauer Hintergrund mit diagonalen Lichtstreifen
+     rechts oben und einer flachen Podest-/Thekenkante, die bei y≈869
+     quer durchs Bild läuft (links leicht angeschrägt, ab x≈95 exakt
+     waagerecht). Titelblock, Wappen, Namen und Ort/Anstoß stehen frei
+     im dunklen oberen Bereich, wie bei Vorlage 1 — nur mit mehr Rand,
+     weil hier kein Kasten die Fläche vorgibt. Das Spielerbild steht
+     rechts und wird an der Podestkante "abgeschnitten": die Vorlage
+     wird darüber erneut gezeichnet, wodurch Beine/Unterkörper hinter
+     der Theke verschwinden. Auf der Podestfläche darunter stehen die
+     Sponsoren. */
   "Vorlage 3": {
-    PAD: 34,
-    PANEL: { x0: 0, x1: 440 },
-    PANEL_ACCENT: "#3A66E1",
-    COL_W: 372, COL_W_FREE: 372,
+    PAD: 48,
 
-    TITLE_BASE: 106, TITLE_CAP: 76, TITLE_MIN_CAP: 44, TITLE_MAX_W: 372,
-    MD_BASE: 150, MD_CAP: 34, MD_MIN_CAP: 22,
-    LIGA_BASE: 180, LIGA_CAP: 22, LIGA_MIN_CAP: 16,
+    TITLE_BASE: 168, TITLE_CAP: 118, TITLE_MIN_CAP: 60, TITLE_MAX_W: 640,
+    MD_BASE: 226, MD_CAP: 38, MD_MIN_CAP: 22,
+    LIGA_BASE: 262, LIGA_CAP: 24, LIGA_MIN_CAP: 16,
 
-    LOGO_X: 1026, LOGO_Y: 52, LOGO_SIZE: 62,
+    CREST_CY: 452, CREST_L: 148, CREST_R: 452,
+    CREST_H: 196, CREST_H_OPP: 184, CREST_MAX_W: 208,
+    NAME_BASE: 596, NAME_CAP: 25, NAME_MAX_W: 300,
 
-    /* Die zwei Team-Zeilen der Spielkarte */
-    ROW_CREST_SIZE: 68, CREST_H: 68, CREST_H_OPP: 68, CREST_MAX_W: 90,
-    ROW_CREST_X: 34 + 34,           /* PAD + halbe Wappengröße */
-    ROW_TEXT_X: 34 + 68 + 20,
-    ROW_NAME_CAP: 27, ROW_NAME_MAX_W: 284,
-    ROW_SCORE_CAP: 46,
-    ROW1_CY: 288, ROW2_CY: 384,
+    INFO_ICON_X: 60, INFO_TEXT_X: 116, INFO_CAP: 27,
+    INFO_ORT_BASE: 700, INFO_ZEIT_BASE: 798,
 
-    /* Ankündigung: Ort und Anstoß als Meta-Paare */
-    META_LABEL_CAP: 15, META_VALUE_CAP: 27, META_GAP: 30,
-    META1_Y: 470, META2_Y: 548,
+    COL_W: 560, COL_W_FREE: 860,
 
-    /* Ergebnis: Torschützen unter der Spielkarte */
-    SCORER_LABEL_CAP: 17, SCORER_CAP: 23, SCORER_LINE_H: 27,
-    SCORER_TOP: 456, SCORER_BOTTOM: 660, SCORER_MAX_LINES: 6,
+    /* Podestkante, aus der Bilddatei vermessen (1254px-Vorlage, auf
+       1080 umgerechnet: 1009 * 1080/1254 ≈ 869). Zuschnitt des Spielers
+       (HEAD_TOP/BAR_BOTTOM/PLAYER_*) bewusst nicht eigens gesetzt — das
+       übernimmt unverändert die Werte aus LAYOUT (Vorlage 1), auf Wunsch,
+       weil der Ausschnitt dort als richtig empfunden wurde. */
+    BAR_TOP: 869,
 
-    HEAD_TOP: 30, HEAD_TOP_PAIR: 30,
-    BAR_TOP: 778, BAR_BOTTOM: 1080,          /* Spieler blutet bis unten aus */
-    RESTORE_STRIP: { y0: 778, y1: 914 },     /* das Band bleibt als Sash sichtbar */
-    PLAYER_GAP: 0, PLAYER_INSET: 0,
-    PLAYER_OVERHANG_MAX: 50, PLAYER_MAX_W: 780,
-
-    /* Sponsoren im sichtbaren Rest des Bands, rechts vom Panel */
-    SPONSOR_LABEL_BASE: 820, SPONSOR_TOP: 834, SPONSOR_BOTTOM: 906,
-    SPONSOR_X0: 470, SPONSOR_X1: 1050
+    /* Sponsoren auf der Podestfläche */
+    SPONSOR_LABEL_BASE: 918, SPONSOR_TOP: 946, SPONSOR_BOTTOM: 1040,
+    SPONSOR_X0: 48, SPONSOR_X1: 1032
   }
+};
+
+/* VORLAGE 4 — Poster-Stil.
+   Links eine dunkel abgetönte Spalte über dem Foto (Scrim) trägt Titel,
+   Wappen mit VS., Ort/Anstoß und Sponsoren als einzelne Chips. Rechts
+   blutet das Spielerbild bis zum unteren Rand aus, kein Balken/Streifen
+   verdeckt es — die Vorlage hat keinen, also gibt es auch keinen zu
+   kaschieren. */
+PROFILES["Vorlage 4"] = {
+  PAD: 40,
+  TITLE_BASE: 120, TITLE_CAP: 104, TITLE_MIN_CAP: 56, TITLE_MAX_W: 460,
+  MD_BASE: 184, MD_CAP: 30, MD_MIN_CAP: 20,
+  LIGA_BASE: 216, LIGA_CAP: 22, LIGA_MIN_CAP: 16,
+
+  CREST_CY: 350, CREST_L: 132, CREST_R: 372,
+  CREST_H: 150, CREST_H_OPP: 140, CREST_MAX_W: 160,
+  NAME_BASE: 480, NAME_CAP: 24, NAME_MAX_W: 212,
+
+  INFO_ICON_X: 46, INFO_TEXT_X: 88, INFO_CAP: 24,
+  INFO_ICON_R: 13, INFO_ICON_R2: 12, INFO_ICON_DY: -9,
+  INFO_ORT_BASE: 564, INFO_ZEIT_BASE: 618,
+
+  HEAD_TOP: 20, HEAD_TOP_PAIR: 20,
+  BAR_TOP: 1080,
+  /* BAR_BOTTOM bewusst etwas über den unteren Bildrand (1080) hinaus:
+     Freigestellte Spielerbilder haben am Rand ein bis zwei halbtransparente
+     Antialiasing-Pixel; ohne Überstand wurde dieser weiche Saum mit
+     hochskaliert und war als schmale, leicht durchscheinende Lücke direkt
+     an der Kante sichtbar. Der Überstand schiebt genau diesen Saum aus
+     dem sichtbaren Bereich, der Rest der Größenberechnung bleibt gleich. */
+  BAR_BOTTOM: 1116,
+  PLAYER_MAX_W: 760, PLAYER_INSET: 0, PLAYER_GAP: 26, PLAYER_OVERHANG_MAX: 60,
+
+  COL_W: 460, COL_W_FREE: 460,
+  /* Nur leicht abgetönt, damit das Streifen-/Rastermuster der Vorlage
+     sichtbar bleibt — vorher praktisch schwarz (.86/.92 Deckkraft). */
+  SCRIM: { x0: 0, x1: 540, top: "rgba(6,9,16,.42)", bottom: "rgba(5,7,13,.52)" },
+  PANEL_W: 460,
+
+  SPONSOR_LABEL_TEXT: "PRÄSENTIERT VON", SPONSOR_LABEL_CAP: 18, SPONSOR_LABEL_BASE: 800,
+  CHIP_TOP: 826, CHIP_H: 74, CHIP_GAP: 14, CHIP_PAD: 16,
+
+  SCORE_CAP: 66, SCORE_GAP: 26,
+  SCORER_LABEL_CAP: 18, SCORER_CAP: 22, SCORER_LINE_H: 26,
+  SCORER_BOTTOM: 770, SCORER_MAX_LINES: 5
 };
 
 /* Aktives Layoutyout: LAYOUT plus Profil der gewählten Vorlage */

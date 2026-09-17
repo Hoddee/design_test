@@ -7,9 +7,51 @@ const W = canvas.width, H = canvas.height;
 
 const render = { template:null, own:null, opponent:null, player:null, sponsors:[] };
 
+/* ========== Vorlagenfarbe: Duoton ==========
+   Pro Pixel bestimmt die Luminanz, wo zwischen Sekundärfarbe (dunkel)
+   und Primärfarbe (hell) gemischt wird — dadurch lässt sich jede
+   beliebige Hex-Farbe für Licht und Schatten frei wählen, Struktur und
+   Kontrast der Vorlage bleiben erhalten. */
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+  return m ? [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)] : [255,255,255];
+}
+
+const templateColorCache = {};
+function recolorTemplate(img, primaryHex, secondaryHex){
+  if(!primaryHex || !secondaryHex) return img;
+  const cacheKey = img.src+"|"+primaryHex+"|"+secondaryHex;
+  if(templateColorCache[cacheKey]) return templateColorCache[cacheKey];
+  try{
+    const off = document.createElement("canvas");
+    off.width = img.width; off.height = img.height;
+    const octx = off.getContext("2d", { willReadFrequently:true });
+    octx.drawImage(img, 0, 0);
+    const [pr,pg,pb] = hexToRgb(primaryHex);
+    const [sr,sg,sb] = hexToRgb(secondaryHex);
+    const data = octx.getImageData(0, 0, off.width, off.height);
+    const d = data.data;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]===0) continue;
+      const l = (0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2]) / 255;
+      d[i]   = sr + (pr-sr)*l;
+      d[i+1] = sg + (pg-sg)*l;
+      d[i+2] = sb + (pb-sb)*l;
+    }
+    octx.putImageData(data, 0, 0);
+    templateColorCache[cacheKey] = off;
+    return off;
+  }catch(err){
+    console.warn("Vorlage konnte nicht eingefärbt werden (CORS?).", err);
+    return img;
+  }
+}
+
 async function buildGraphic(){
   const jobs = [];
-  if(draft.template) jobs.push(loadImage(draft.template.url).then(function(i){ render.template = i; }));
+  if(draft.template) jobs.push(loadImage(draft.template.url).then(function(i){
+    render.template = TEMPLATE_RECOLOR ? recolorTemplate(i, TEMPLATE_PRIMARY, TEMPLATE_SECONDARY) : i;
+  }));
   if(lib.own)        jobs.push(loadImage(lib.own.url).then(function(i){ render.own = i; }));
   if(draft.opponent) jobs.push(loadImage(draft.opponent.url).then(function(i){ render.opponent = i; }));
   if(draft.player)   jobs.push(loadImage(draft.player.url).then(function(i){ render.player = i; }));
@@ -467,6 +509,14 @@ function drawStrip(){
   const S = K.STRIP;
   ctx.fillStyle = S.color;
   ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
+  /* Optionale deckende Bodenfläche unterhalb des Streifens, für Vorlagen,
+     deren Kasten einen gemusterten Rahmensaum hat, den der halbtransparente
+     Streifen allein nicht abdeckt (siehe Vorlage 2). */
+  if(K.STRIP_FLOOR){
+    const F = K.STRIP_FLOOR;
+    ctx.fillStyle = F.color;
+    ctx.fillRect(F.x0, F.y0, F.x1 - F.x0, F.y1 - F.y0);
+  }
 }
 
 function drawTopLogo(){
@@ -482,11 +532,25 @@ function drawHeader(L, titel){
   const minT = K.TITLE_MIN_CAP || 90, minM = K.MD_MIN_CAP || 36, minL = K.LIGA_MIN_CAP || 22;
   shadowOn(20,.45);
   ctx.fillStyle = "#FFFFFF";
-  skewFit(titel, ax, K.TITLE_BASE, K.TITLE_MAX_W, K.TITLE_CAP, minT, al);
+  const zweizeilig = K.TITLE_TWOLINE && titel === "MATCHDAY";
+  if(zweizeilig){
+    /* "MATCHDAY" fest an der fünften Stelle geteilt ("MATCH"/"DAY"),
+       wie im ursprünglichen Poster-Zuschnitt. Andere Titel (z. B.
+       "ERGEBNIS") bleiben einzeilig — ein 5/3-Split sähe dort unrund aus. */
+    const z1 = titel.slice(0, titel.length-3), z2 = titel.slice(titel.length-3);
+    skewFit(z1, ax, K.TITLE_BASE, K.TITLE_MAX_W, K.TITLE_CAP, minT, al);
+    skewFit(z2, ax, K.TITLE_BASE + K.TITLE_LINE_GAP, K.TITLE_MAX_W, K.TITLE_CAP, minT, al);
+  } else {
+    skewFit(titel, ax, K.TITLE_BASE, K.TITLE_MAX_W, K.TITLE_CAP, minT, al);
+  }
+  /* Ohne zweite Titelzeile rückt "SPIELTAG …" entsprechend höher nach,
+     statt eine Lücke zu lassen, die für die zweite Zeile reserviert war */
+  const nachruecken = (K.TITLE_TWOLINE && !zweizeilig) ? K.TITLE_LINE_GAP : 0;
+  const mdBase = K.MD_BASE - nachruecken;
   ctx.fillStyle = "#AFC3D8";
-  skewFit(L.mdText, ax, K.MD_BASE, L.colW, K.MD_CAP, minM, al);
+  skewFit(L.mdText, ax, mdBase, L.colW, K.MD_CAP, minM, al);
   ctx.fillStyle = "#FFFFFF";
-  skewFit(L.ligaText, ax, K.LIGA_BASE, L.colW, K.LIGA_CAP, minL, al);
+  skewFit(L.ligaText, ax, K.LIGA_BASE - nachruecken, L.colW, K.LIGA_CAP, minL, al);
   shadowOff();
 }
 
@@ -651,4 +715,52 @@ function drawMetaPair(K, y, label, value){
   ctx.fillStyle = "#FFFFFF";
   skewFit(value, K.PAD, y + K.META_GAP, K.PANEL.x1 - K.PAD*2, K.META_VALUE_CAP, 18);
   ctx.restore();
+}
+
+
+/* ========== Scrim & Sponsoren-Chips (Vorlage 4) ==========
+   Ein Scrim ist eine dunkle Aufhellungsfläche über einem Teil des Fotos,
+   damit Text dort lesbar bleibt, ohne die Textur ganz zu verdecken.
+   Sponsoren stehen hier nicht als volle Leiste, sondern als einzelne
+   Chips, die sich innerhalb der linken Spalte umbrechen. */
+
+function drawScrim(K){
+  if(!K.SCRIM) return;
+  const S = K.SCRIM;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, S.top    || "rgba(8,10,16,.86)");
+  g.addColorStop(1, S.bottom || "rgba(6,8,13,.92)");
+  ctx.fillStyle = g;
+  ctx.fillRect(S.x0, 0, S.x1 - S.x0, H);
+}
+
+function drawSponsorChips(K){
+  if(render.sponsors.length === 0) return;
+
+  ctx.fillStyle = "rgba(255,255,255,.55)";
+  setFont(sizeForCap(K.SPONSOR_LABEL_CAP));
+  skewText(K.SPONSOR_LABEL_TEXT || "PRÄSENTIERT VON", K.PAD, K.SPONSOR_LABEL_BASE, "left");
+
+  const maxW = K.PANEL_W || (K.PAD ? (K.SCRIM ? K.SCRIM.x1 : 1080) - 2*K.PAD : 1080);
+  const chipH = K.CHIP_H, gap = K.CHIP_GAP, inner = K.CHIP_PAD;
+  let x = K.PAD, y = K.CHIP_TOP;
+
+  render.sponsors.forEach(function(img){
+    if(!img) return;
+    const b = contentBox(img);
+    const logoH = chipH - 2*inner;
+    const scale = Math.min(logoH/b.h, (260-2*inner)/b.w);
+    const w = b.w*scale, h = b.h*scale;
+    const chipW = w + 2*inner;
+
+    if(x + chipW > K.PAD + maxW){ x = K.PAD; y += chipH + gap; }
+
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    ctx.beginPath();
+    ctx.roundRect(x, y, chipW, chipH, 10);
+    ctx.fill();
+    ctx.drawImage(img, b.x, b.y, b.w, b.h, x + (chipW-w)/2, y + (chipH-h)/2, w, h);
+
+    x += chipW + gap;
+  });
 }
