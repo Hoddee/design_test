@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- SEO / Sharing -->
+<meta name="description" content="Grafik-Generator für den SC Fornsbach — Spielankündigungen und Ergebnisse als PNG erstellen.">
+<meta name="theme-color" content="#0F1319" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EEF1F5" media="(prefers-color-scheme: light)">
 <title>SC Fornsbach — Grafiken</title>
+<!-- Fonts: preconnect zuerst, dann Link -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +19,7 @@
   try{
     const t = localStorage.getItem("theme"), m = localStorage.getItem("mode");
     if(t) document.documentElement.dataset.theme = t;
-    if(m) document.documentElement.dataset.mode = m;
+    if(m) document.documentElement.dataset.mode  = m;
   }catch(e){}
 </script>
 </head>
@@ -22,14 +27,15 @@
 
 <div class="app">
 
-  <aside class="rail">
-    <div class="brand">
-      <img id="clubLogo" alt="" src="">
-      <span class="brand-name">SC Fornsbach</span>
+  <!-- Seitenleiste -->
+  <aside class="rail" role="navigation" aria-label="Hauptnavigation">
+    <div class="brand" aria-label="SC Fornsbach Grafik-Generator">
+      <img id="clubLogo" alt="SC Fornsbach Wappen" src="" width="34" height="34">
+      <span class="brand-name" aria-hidden="true">SC Fornsbach</span>
     </div>
 
     <nav class="nav" aria-label="Bereiche">
-      <button class="nav-item active" data-view="create">
+      <button class="nav-item active" data-view="create" aria-current="page">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         <span>Erstellen</span>
       </button>
@@ -43,27 +49,27 @@
       </button>
     </nav>
 
-    <div class="rail-foot">Grafik-Generator</div>
+    <div class="rail-foot" aria-hidden="true">Grafik-Generator</div>
   </aside>
 
-  <main class="stage">
+  <main class="stage" id="mainContent">
 
     <!-- Erstellen -->
-    <section class="view active" data-view="create">
+    <section class="view active" data-view="create" aria-label="Neue Grafik erstellen">
       <div id="hero">
         <header class="view-head">
           <h1>Neue Grafik</h1>
         </header>
-        <div class="tiles">
-          <button class="tile" data-start="matchday" disabled>
-            <span class="tile-art"><span>MATCHDAY</span></span>
+        <div class="tiles" role="list">
+          <button class="tile" data-start="matchday" disabled role="listitem" aria-label="Spielankündigung erstellen — Gegner, Anstoß und Spielort vor dem Spiel">
+            <span class="tile-art" aria-hidden="true"><span>MATCHDAY</span></span>
             <span class="tile-text">
               <strong>Spielankündigung</strong>
               <span>Gegner, Anstoß und Spielort vor dem Spiel</span>
             </span>
           </button>
-          <button class="tile" data-start="ergebnis" disabled>
-            <span class="tile-art"><span>ERGEBNIS</span></span>
+          <button class="tile" data-start="ergebnis" disabled role="listitem" aria-label="Ergebnisgrafik erstellen — Endstand und Torschützen nach dem Spiel">
+            <span class="tile-art" aria-hidden="true"><span>ERGEBNIS</span></span>
             <span class="tile-text">
               <strong>Ergebnis</strong>
               <span>Endstand und Torschützen nach dem Spiel</span>
@@ -72,29 +78,33 @@
         </div>
       </div>
 
-      <div class="result" id="result">
+      <!-- Ergebnis-Vorschau -->
+      <div class="result" id="result" aria-live="polite" aria-label="Fertige Grafik">
         <header class="view-head result-head">
           <h1 id="resultTitle">Fertig</h1>
           <div class="result-actions">
-            <button class="btn btn-ghost" id="editBtn">Ändern</button>
-            <button class="btn btn-ghost" id="newBtn">Neu</button>
-            <button class="btn btn-primary" id="downloadBtn">PNG herunterladen</button>
+            <button class="btn btn-ghost" id="editBtn" aria-label="Grafik-Einstellungen ändern">Ändern</button>
+            <button class="btn btn-ghost" id="newBtn" aria-label="Neue Grafik starten">Neu</button>
+            <button class="btn btn-primary" id="downloadBtn">
+              <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M8 12l4 4 4-4"/><path d="M4 20h16"/></svg>
+              PNG herunterladen
+            </button>
           </div>
         </header>
         <div class="frame">
-          <canvas id="canvas" width="1080" height="1080"></canvas>
+          <canvas id="canvas" width="1080" height="1080" aria-label="Vorschau der erstellten Grafik"></canvas>
         </div>
       </div>
     </section>
 
     <!-- Hilfe -->
-    <section class="view" data-view="faq">
+    <section class="view" data-view="faq" aria-label="Hilfe und FAQ">
       <header class="view-head"><h1>Hilfe</h1></header>
       <div class="faq">
         <details>
           <summary>Wie füge ich ein neues Wappen hinzu?</summary>
           <div class="faq-body">
-            <p>Such bei Google Bilder nach „<em>Vereinsname</em> Wappen png“ und wähle unter <strong>Tools → Typ → PNG</strong>. Bilder mit kariertem Hintergrund in der Vorschau sind transparent — genau die brauchst du.</p>
+            <p>Such bei Google Bilder nach „<em>Vereinsname</em> Wappen png" und wähle unter <strong>Tools → Typ → PNG</strong>. Bilder mit kariertem Hintergrund in der Vorschau sind transparent — genau die brauchst du.</p>
             <p>Lade die Datei in den Wappen-Ordner deiner Liga. Für Umlaute schreibst du <code>ae</code>, <code>oe</code>, <code>ue</code>, für einen Schrägstrich bei Spielgemeinschaften <code>__</code> (zwei Unterstriche). Beispiel: <code>SGM_Erbstetten_II__TSG_Backnang_III_II.png</code></p>
             <p>Findest du kein brauchbares Wappen, melde dich beim Team.</p>
           </div>
@@ -102,8 +112,8 @@
         <details>
           <summary>Wie bereite ich ein Spielerbild vor?</summary>
           <div class="faq-body">
-            <p>Das Foto muss freigestellt sein, also ohne Hintergrund. Das geht kostenlos auf remove.bg oder in Canva mit „Hintergrund entfernen“. Speichere das Ergebnis als PNG.</p>
-            <p>Benenne die Datei <code>Spielerbild_Vorname.png</code>. Bei zwei Personen <code>Spielerbild_Name_und_Name.png</code> — am „und“ erkennt die App, dass es ein Doppelbild ist.</p>
+            <p>Das Foto muss freigestellt sein, also ohne Hintergrund. Das geht kostenlos auf <strong>remove.bg</strong> oder in <strong>Canva</strong> mit „Hintergrund entfernen". Speichere das Ergebnis als PNG.</p>
+            <p>Benenne die Datei <code>Spielerbild_Vorname.png</code>. Bei zwei Personen <code>Spielerbild_Name_und_Name.png</code> — am „und" erkennt die App, dass es ein Doppelbild ist.</p>
           </div>
         </details>
         <details>
@@ -115,32 +125,72 @@
         <details>
           <summary>Was bedeutet die Zahl beim Spieltag?</summary>
           <div class="faq-body">
-            <p>Eine Zahl wird zu „Spieltag 5.“. Alles andere bleibt, wie du es schreibst — zum Beispiel „Pokal-Viertelfinale“ oder „Testspiel“.</p>
+            <p>Eine Zahl wird zu „Spieltag 5.". Alles andere bleibt, wie du es schreibst — zum Beispiel „Pokal-Viertelfinale" oder „Testspiel".</p>
+          </div>
+        </details>
+        <details>
+          <summary>Welche Bildformate werden unterstützt?</summary>
+          <div class="faq-body">
+            <p>Die Bibliothek akzeptiert <strong>PNG</strong>, <strong>JPG</strong> und <strong>WebP</strong>. Für Wappen und Spielerbilder empfiehlt sich PNG mit Transparenz. Sponsorenlogos können auch als JPG hochgeladen werden, solange der Hintergrund weiß ist.</p>
           </div>
         </details>
       </div>
     </section>
 
     <!-- Einstellungen -->
-    <section class="view" data-view="settings">
+    <section class="view" data-view="settings" aria-label="Einstellungen">
       <header class="view-head"><h1>Einstellungen</h1></header>
 
       <div class="setting">
         <h2>Farbe</h2>
-        <div class="swatches" role="radiogroup" aria-label="Akzentfarbe">
-          <button class="swatch" data-theme="blau"  style="--c:#2B7FD6" aria-label="Blau"></button>
-          <button class="swatch" data-theme="gruen" style="--c:#2E9A5A" aria-label="Grün"></button>
-          <button class="swatch" data-theme="rot"   style="--c:#D33C3C" aria-label="Rot"></button>
-          <button class="swatch" data-theme="gold"  style="--c:#D19A2C" aria-label="Gold"></button>
-          <button class="swatch" data-theme="grau"  style="--c:#7A8798" aria-label="Grau"></button>
+        <div class="swatches" role="radiogroup" aria-label="App-Akzentfarbe">
+          <button class="swatch" data-theme="blau"  style="--c:#2B7FD6" aria-label="Blau" title="Blau"></button>
+          <button class="swatch" data-theme="gruen" style="--c:#2E9A5A" aria-label="Grün" title="Grün"></button>
+          <button class="swatch" data-theme="rot"   style="--c:#D33C3C" aria-label="Rot"  title="Rot"></button>
+          <button class="swatch" data-theme="gold"  style="--c:#D19A2C" aria-label="Gold" title="Gold"></button>
+          <button class="swatch" data-theme="grau"  style="--c:#7A8798" aria-label="Grau" title="Grau"></button>
+        </div>
+      </div>
+
+      <div class="setting">
+        <h2>Vorlagenfarbe</h2>
+        <p class="setting-desc">Färbt Vorlagen als Duoton ein — eigene Primär- und Sekundärfarbe, unabhängig von der App-Farbe oben.</p>
+
+        <div class="tpl-preview" id="tplPreview" aria-hidden="true"></div>
+
+        <div class="tpl-presets" role="radiogroup" aria-label="Vorlagen-Farbschema">
+          <button class="tpl-chip active" id="tplOriginal" aria-pressed="true">Original</button>
+          <button class="tpl-chip" data-preset="blau"   aria-pressed="false"><i style="background:linear-gradient(135deg,#0F3D73,#EAF3FF)" aria-hidden="true"></i>Blau</button>
+          <button class="tpl-chip" data-preset="gruen"  aria-pressed="false"><i style="background:linear-gradient(135deg,#0E4A2B,#EAFBF1)" aria-hidden="true"></i>Grün</button>
+          <button class="tpl-chip" data-preset="rot"    aria-pressed="false"><i style="background:linear-gradient(135deg,#7A1414,#FFF1EF)" aria-hidden="true"></i>Rot</button>
+          <button class="tpl-chip" data-preset="gold"   aria-pressed="false"><i style="background:linear-gradient(135deg,#7A5410,#FFF8E8)" aria-hidden="true"></i>Gold</button>
+          <button class="tpl-chip" data-preset="grau"   aria-pressed="false"><i style="background:linear-gradient(135deg,#2B323D,#F3F5F8)" aria-hidden="true"></i>Grau</button>
+          <button class="tpl-chip" data-preset="schwarz" aria-pressed="false"><i style="background:linear-gradient(135deg,#101010,#F2F2F2)" aria-hidden="true"></i>Schwarz</button>
+        </div>
+
+        <div class="tpl-fields">
+          <div class="tpl-field">
+            <label for="tplPrimaryHex">Primär <span>helle Bereiche</span></label>
+            <div class="tpl-input">
+              <button type="button" class="tpl-swatch" id="tplPrimarySwatch" style="--sw:#EAF3FF" aria-label="Primärfarbe wählen"></button>
+              <input type="text" id="tplPrimaryHex" maxlength="7" value="#EAF3FF" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
+          <div class="tpl-field">
+            <label for="tplSecondaryHex">Sekundär <span>dunkle Bereiche</span></label>
+            <div class="tpl-input">
+              <button type="button" class="tpl-swatch" id="tplSecondarySwatch" style="--sw:#0F3D73" aria-label="Sekundärfarbe wählen"></button>
+              <input type="text" id="tplSecondaryHex" maxlength="7" value="#0F3D73" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="setting">
         <h2>Darstellung</h2>
-        <div class="segmented" role="radiogroup" aria-label="Modus">
-          <button data-mode="dark">Dunkel</button>
-          <button data-mode="light">Hell</button>
+        <div class="segmented" role="radiogroup" aria-label="Anzeigemodus">
+          <button data-mode="dark"  aria-pressed="true">Dunkel</button>
+          <button data-mode="light" aria-pressed="false">Hell</button>
         </div>
       </div>
 
@@ -150,7 +200,11 @@
           <dt>Name</dt><dd id="factClub"></dd>
           <dt>Liga</dt><dd id="factLiga"></dd>
           <dt>Heimspielstätte</dt><dd id="factVenue"></dd>
-          <dt>Bibliothek</dt><dd><span class="dot" id="connDot"></span><span id="connText">lädt</span></dd>
+          <dt>Bibliothek</dt>
+          <dd>
+            <span class="dot" id="connDot" role="status" aria-label="Verbindungsstatus"></span>
+            <span id="connText" aria-live="polite">lädt</span>
+          </dd>
         </dl>
       </div>
     </section>
@@ -159,29 +213,50 @@
 </div>
 
 <!-- Assistent -->
-<div class="overlay" id="wizOverlay">
-  <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+<div class="overlay" id="wizOverlay" role="dialog" aria-modal="true" aria-labelledby="wizTitle">
+  <div class="wizard">
     <div class="wiz-head">
       <div class="wiz-top">
-        <span class="wiz-step" id="wizStep">Schritt 1 von 7</span>
-        <button class="close" id="wizClose" aria-label="Abbrechen">
+        <span class="wiz-step" id="wizStep" aria-live="polite">Schritt 1 von 7</span>
+        <button class="close" id="wizClose" aria-label="Assistent schließen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
-      <div class="bar"><i id="wizBar"></i></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="wizProgress" aria-label="Fortschritt">
+        <i id="wizBar"></i>
+      </div>
       <h2 id="wizTitle">Vorlage</h2>
       <p id="wizDesc"></p>
     </div>
     <div class="wiz-body" id="wizBody"></div>
     <div class="wiz-foot">
       <button class="btn btn-ghost" id="wizBack">Zurück</button>
-      <span class="count" id="wizCount"></span>
+      <span class="count" id="wizCount" aria-live="polite"></span>
       <button class="btn btn-primary" id="wizNext">Weiter</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- Eigener Farbwähler -->
+<div class="tpl-picker" id="tplPicker" role="dialog" aria-label="Farbwähler" aria-modal="true">
+  <div class="tpl-picker-sv" id="tplPickerSV" aria-label="Sättigung und Helligkeit wählen" tabindex="0">
+    <div class="tpl-picker-sv-cursor" id="tplPickerSVCursor"></div>
+  </div>
+  <div class="tpl-picker-hue">
+    <label class="sr-only" for="tplPickerHue">Farbton</label>
+    <input type="range" id="tplPickerHue" min="0" max="360" value="0" aria-label="Farbton">
+  </div>
+  <div class="tpl-picker-foot">
+    <span class="tpl-picker-swatch" id="tplPickerSwatch" aria-hidden="true"></span>
+    <label class="sr-only" for="tplPickerHex">Hex-Farbcode</label>
+    <input type="text" id="tplPickerHex" maxlength="7" aria-label="Hex-Farbcode" spellcheck="false" autocomplete="off">
+  </div>
+</div>
+
+<!-- Screen-Reader-only Hilfsklasse -->
+<style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}</style>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="js/config.js" defer></script>
 <script src="js/library.js" defer></script>
